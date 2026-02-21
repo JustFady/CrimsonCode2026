@@ -6,7 +6,7 @@
 
 Cross-platform emergency response mobile application for USA users. Single device per account, phone number OTP authentication, 50-mile public alert radius, 48-hour event expiration.
 
-**Target Platforms:** Android, iOS (Tauri v2)
+**Target Platforms:** Android, iOS (Kotlin Multiplatform / Jetpack Compose Multiplatform)
 **Target Region:** USA only
 **Target Language:** English only
 **Account Model:** One device per phone number
@@ -17,17 +17,17 @@ Cross-platform emergency response mobile application for USA users. Single devic
 
 | Layer | Technology |
 |-------|-----------|
-| Frontend | Svelte 5 with Runes |
-| Mobile Framework | Tauri v2 (Android + iOS only) |
+| Frontend | Jetpack Compose Multiplatform |
+| Mobile Framework | Kotlin Multiplatform (Android + iOS) |
 | Database | Supabase PostgreSQL |
-| DB Access | Supabase SQL migrations + supabase-js |
+| DB Access | Supabase SQL migrations + supabase-kt |
 | Authentication | Supabase Auth (Phone OTP) |
-| Session Management | Tauri Stronghold plugin + Biometrics |
-| Real-time | Supabase Realtime |
-| Maps | Leaflet + Leaflet.markercluster |
-| Map Tiles | OpenStreetMap (hackathon/demo scale) |
-| Push Notifications | Firebase Cloud Messaging (free) |
-| Geolocation | Tauri Geolocation plugin |
+| Session Management | KSafe / KDataNest encrypted storage + moko-biometry |
+| Real-time | Supabase Realtime (supabase-kt) |
+| Maps | Google Maps (Android) + MapLibre (iOS) via expect/actual |
+| Push Notifications | Firebase Cloud Messaging (Android) + APNs via Firebase (iOS) |
+| Geolocation | moko-geo |
+| Contacts | Kontacts |
 | Storage | Supabase Storage (for future attachments) |
 | Backend | Supabase Edge Functions |
 
@@ -40,23 +40,34 @@ Cross-platform emergency response mobile application for USA users. Single devic
 │          CLIENT LAYER                  │
 │                                       │
 │  ┌────────────────┐  ┌──────────────┐│
-│  │  Tauri Android│  │Tauri iOS    ││
+│  │  KMP Android  │  │   KMP iOS    ││
 │  │                │  │              ││
-│  │  - Svelte 5    │  │- Svelte 5   ││
-│  │  - Leaflet     │  │- Leaflet    ││
-│  │  - Stronghold  │  │- Stronghold ││
-│  │  - FCM Plugin  │  │- FCM Plugin ││
-│  │  - Geolocation │  │- Geolocation││
+│  │  - Compose UI  │  │- Compose UI ││
+│  │  - Google Maps │  │- MapLibre   ││
+│  │  - KSafe       │  │- KSafe      ││
+│  │  - FCM         │  │- APNs/Firebase│
+│  │  - moko-geo    │  │- moko-geo   ││
+│  │  - Kontacts    │  │- Kontacts   ││
+│  │  - moko-biometry│ │- moko-biometry│
 │  └────────┬───────┘  └──────┬───────┘│
-└───────────┼──────────────────┼──────────┘
-            │                  │
-            └────────┬─────────┘
-                     │
-        ┌────────────┴────────────┐
-        │   HTTPS / WebSocket    │
-        └────────────┬────────────┘
-                     │
-        ┌────────────┴────────────┐
+│           │                  │        │
+│           └───────┬──────────┘        │
+│                   │                    │
+│          ┌────────┴────────┐           │
+│          │   COMMON CODE   │           │
+│          │                 │           │
+│          │ - Business Logic│           │
+│          │ - Data Models   │           │
+│          │ - Supabase-kt   │           │
+│          │ - State Mgmt    │           │
+│          └────────┬────────┘           │
+└───────────────────┼────────────────────┘
+                    │
+        ┌───────────┴──────────┐
+        │   HTTPS / WebSocket  │
+        └───────────┬──────────┘
+                    │
+        ┌───────────┴──────────┐
         │    SUPABASE PLATFORM   │
         │                        │
         │  ┌────────────────────┐│
@@ -178,11 +189,11 @@ Users (1) ----< (N) EventRecipients ----> (N) Events
 6. Device ID generated from app/device context
 7. Server creates or updates user record with phone number + device ID
 8. Access token and refresh token generated
-9. Tokens stored in Tauri Stronghold encrypted vault
+9. Tokens stored in encrypted key-value storage (KSafe / KDataNest)
 10. User navigates to contact selection screen
 
 **Subsequent App Opens:**
-1. App checks for existing session in Stronghold vault
+1. App checks for existing session in encrypted storage (KSafe / KDataNest)
 2. If valid refresh token exists: Request biometric authentication
 3. Biometric verified: New access token issued, refresh token remains
 4. No OTP required
@@ -192,14 +203,14 @@ Users (1) ----< (N) EventRecipients ----> (N) Events
 - Refresh token expires (30 days)
 - Device is factory reset
 - App is reinstalled
-- Stronghold vault data is cleared
+- Encrypted storage data is cleared
 
 ### Session Management
 
 | Token Type | Storage | Expiration |
 |------------|---------|-----------|
 | Access Token | Memory only | 15 minutes |
-| Refresh Token | Stronghold encrypted vault | 30 days |
+| Refresh Token | KSafe / KDataNest encrypted storage | 30 days |
 | FCM Push Token | Supabase database | Until device uninstalls app |
 
 ### Biometric Authentication
@@ -211,7 +222,7 @@ Users (1) ----< (N) EventRecipients ----> (N) Events
 ### Security Measures (MVP)
 
 - Phone OTP login via Supabase Auth
-- Tokens stored in Stronghold vault
+- Tokens encrypted in KSafe / KDataNest
 - Device ID checked against current bound device on each session refresh
 - Session persists for 30 days with biometric re-auth
 
@@ -352,17 +363,14 @@ Users (1) ----< (N) EventRecipients ----> (N) Events
 
 ## Maps and Visualization Design
 
-### Map Tile Strategy
+### Map Providers
 
-**Primary Tile Provider:** OpenStreetMap Standard
-- Cost: Free, no API key required
-- Coverage: Global
-- Attribution required
+**Android:** Google Maps Platform
+- Online maps with Google Maps SDK
+- Requires Google Maps API key
 
-**Tile Performance:**
-- Cache tiles for user's region (zoom levels 12-16)
-- Standard HTTP/browser caching only
-- Cache expiration: 7 days
+**iOS:** MapLibre
+- Online maps with MapLibre SDK
 
 ### Marker System
 
@@ -375,9 +383,9 @@ Users (1) ----< (N) EventRecipients ----> (N) Events
 - Icons: Fire (flame), Medical (cross), Weather (cloud), etc.
 
 **Clustering:**
-- Leaflet.markercluster for dense areas
+- Map clustering for dense areas
 - Cluster color: Maximum severity within cluster
-- Spiderfy behavior at maximum zoom
+- Cluster expands to show individual markers at maximum zoom
 
 ### User Location Display
 
@@ -620,7 +628,7 @@ Users (1) ----< (N) EventRecipients ----> (N) Events
 ### Data Security
 
 **Encryption:**
-- Tokens encrypted in Stronghold vault
+- Tokens encrypted in KSafe / KDataNest
 - Database connections encrypted with TLS
 
 **Row Level Security:**
@@ -667,19 +675,13 @@ Users (1) ----< (N) EventRecipients ----> (N) Events
 
 ## Deployment Strategy
 
-### Development Environment
-
-**Local:**
-- Supabase local development environment
-- Tauri local development server
-
 ### Production Environment
 
 **Infrastructure:**
 - Supabase Pro plan
 - Supabase Auth (Phone OTP)
 - Firebase FCM (free)
-- OpenStreetMap tiles (free)
+- Google Maps Platform API
 
 **Release Process:**
 - Automated builds
@@ -698,8 +700,9 @@ Users (1) ----< (N) EventRecipients ----> (N) Events
 | Supabase Pro | $25 |
 | Supabase Auth SMS | Variable usage |
 | Firebase FCM | $0 |
-| OpenStreetMap Tiles | $0 |
-| **Total** | **$25 + SMS usage** |
+| Google Maps Platform | Variable usage (with free tier) |
+| MapLibre | $0 |
+| **Total** | **$25 + SMS usage + Maps usage** |
 
 ### Projected Annual
 
@@ -712,13 +715,13 @@ Users (1) ----< (N) EventRecipients ----> (N) Events
 ### Stage 1: Foundation (Weeks 1-4)
 
 **Deliverables:**
-- Tauri v2 project initialized with Svelte 5
+- Kotlin Multiplatform project initialized with Compose Multiplatform
 - Supabase project created and configured
 - SQL schema defined and initial migration applied
-- Authentication flow (Supabase Auth phone OTP)
-- Stronghold plugin for secure token storage
-- Biometric authentication flow
-- Basic UI shell with navigation
+- Authentication flow (Supabase Auth phone OTP via supabase-kt)
+- KSafe / KDataNest encrypted storage for secure token storage
+- moko-biometry integration for biometric authentication flow
+- Basic Compose UI shell with navigation
 - Development environment functional
 
 **Success Criteria:**
@@ -747,13 +750,12 @@ Users (1) ----< (N) EventRecipients ----> (N) Events
 ### Stage 3: Maps & Location (Weeks 7-8)
 
 **Deliverables:**
-- Leaflet map integration with OSM tiles
-- Geolocation integration with permission handling
+- Map integration via expect/actual (Google Maps Android, MapLibre iOS)
+- moko-geo integration with permission handling
 - User location marker with accuracy visualization
 - Map interaction patterns
 - Location fallback chain
 - Accuracy display with color coding
-- Map tile caching with standard HTTP caching
 
 **Success Criteria:**
 - Map displays with user location
@@ -801,7 +803,7 @@ Users (1) ----< (N) EventRecipients ----> (N) Events
 ### Stage 6: Push Notifications (Weeks 13-14)
 
 **Deliverables:**
-- FCM plugin integration for Tauri
+- Firebase Cloud Messaging integration via expect/actual pattern
 - Device token registration
 - Push notification payload construction
 - Severity-based notification styling
@@ -912,7 +914,7 @@ Users (1) ----< (N) EventRecipients ----> (N) Events
 
 ## Final Summary
 
-**Platforms:** Tauri Android, Tauri iOS (no desktop, no tablet)
+**Platforms:** Android, iOS (Kotlin Multiplatform / Compose Multiplatform)
 **Region:** USA only
 **Language:** English only
 **Account Model:** One device per phone number
