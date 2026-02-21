@@ -90,10 +90,10 @@ Cross-platform emergency response mobile application for USA users. Single devic
         ┌────────────┴────────────┐
         │ EXTERNAL INTEGRATIONS    │
         │                         │
-        │  ┌──────────────┐ ┌─────────┐│
-        │  │ Supabase OTP │ │ Firebase ││
-        │  │     SMS      │ │   FCM   ││
-        │  └──────────────┘ └─────────┘│
+        │  ┌─────────┐ ┌─────────┐│
+        │  │ Twilio  │ │ Firebase ││
+        │  │ Verify  │ │   FCM   ││
+        │  └─────────┘ └─────────┘│
         └───────────────────────────┘
 ```
 
