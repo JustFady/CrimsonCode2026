@@ -4,7 +4,7 @@
 
 ## Executive Summary
 
-Cross-platform emergency response mobile application for USA users. Single device per account, phone number authentication, 50-mile public alert radius, 48-hour event expiration.
+Cross-platform emergency response mobile application for USA users. Single device per account, phone number OTP authentication, 50-mile public alert radius, 48-hour event expiration.
 
 **Target Platforms:** Android, iOS (Tauri v2)
 **Target Region:** USA only
@@ -20,12 +20,12 @@ Cross-platform emergency response mobile application for USA users. Single devic
 | Frontend | Svelte 5 with Runes |
 | Mobile Framework | Tauri v2 (Android + iOS only) |
 | Database | Supabase PostgreSQL |
-| ORM | Prisma 7 |
-| Authentication | Supabase Auth + Twilio Verify |
+| DB Access | Supabase SQL migrations + supabase-js |
+| Authentication | Supabase Auth (Phone OTP) |
 | Session Management | Tauri Stronghold plugin + Biometrics |
 | Real-time | Supabase Realtime |
 | Maps | Leaflet + Leaflet.markercluster |
-| Map Tiles | OpenStreetMap (free) |
+| Map Tiles | OpenStreetMap (hackathon/demo scale) |
 | Push Notifications | Firebase Cloud Messaging (free) |
 | Geolocation | Tauri Geolocation plugin |
 | Storage | Supabase Storage (for future attachments) |
@@ -79,10 +79,10 @@ Cross-platform emergency response mobile application for USA users. Single devic
         ┌────────────┴────────────┐
         │ EXTERNAL INTEGRATIONS    │
         │                         │
-        │  ┌─────────┐ ┌─────────┐│
-        │  │ Twilio  │ │ Firebase ││
-        │  │ Verify  │ │   FCM   ││
-        │  └─────────┘ └─────────┘│
+        │  ┌──────────────┐ ┌─────────┐│
+        │  │ Supabase OTP │ │ Firebase ││
+        │  │     SMS      │ │   FCM   ││
+        │  └──────────────┘ └─────────┘│
         └───────────────────────────┘
 ```
 
@@ -95,27 +95,23 @@ Cross-platform emergency response mobile application for USA users. Single devic
 - Fields:
   - Phone number (unique, indexed)
   - Device ID (unique, indexed)
+  - FCM token (indexed)
+  - Platform: enum (ANDROID, IOS)
+  - DeviceModel: string
   - isActive: boolean
   - createdAt: timestamp
   - lastActiveAt: timestamp
-- Constraint: One user per phone number + device ID combination
-
-### Contacts Table
-- Primary Key: UUID
-- Fields:
-  - Phone number (unique, indexed)
-  - Display name
-  - hasApp: boolean (indexed)
-  - createdAt: timestamp
-- Purpose: Global registry of all contacts across system
+- Constraint: One user per phone number
 
 ### UserContacts Table
-- Primary Key: Composite (userId, contactId)
+- Primary Key: UUID
 - Fields:
   - User ID (foreign key)
-  - Contact ID (foreign key)
+  - Contact phone number (indexed)
+  - Display name
+  - hasApp: boolean
   - AddedAt: timestamp
-- Constraint: Unique combination of user and contact
+- Constraint: Unique combination of user and contact phone number
 - Purpose: The list of private contacts for alert delivery
 
 ### Events Table
@@ -148,39 +144,16 @@ Cross-platform emergency response mobile application for USA users. Single devic
   - NotifiedAt: timestamp
   - AcknowledgedAt: timestamp (optional)
   - ClearedAt: timestamp (optional, when user clears from their list)
-  - IsPublicRecipient: boolean (true if recipient matched via public radius, false if from private contacts)
-- Purpose: Track which users received which events and their interaction status
-
-### UserDevices Table
-- Primary Key: UUID
-- Fields:
-  - User ID (foreign key)
-  - FCM token (indexed)
-  - Platform: enum (ANDROID, IOS)
-  - DeviceModel: string
-  - LastUsedAt: timestamp
-- Purpose: Map users to push notification tokens (one token per user due to single-device model)
-
-### EventCategories Table
-- Primary Key: UUID
-- Fields:
-  - Name: enum (pre-defined categories)
-  - Description: string
-  - Icon: string (SVG reference)
-  - Color: string (hex)
-  - DefaultSeverity: enum (ALERT, CRISIS)
-- Pre-populated data, user-configurable
+- Purpose: Track private recipients and interaction status
 
 ---
 
 ## Data Model Relationships
 
 ```
-Users (1) ----< (N) UserContacts ----> (N) Contacts
+Users (1) ----< (N) UserContacts
 Users (1) ----< (N) Events
-Users (1) ----< (1) UserDevices
 Users (1) ----< (N) EventRecipients ----> (N) Events
-Events (N) ----> (1) EventCategories
 ```
 
 ---
@@ -190,20 +163,20 @@ Events (N) ----> (1) EventCategories
 ### Account Model
 
 **One Device Per Account:**
-- User account uniquely identified by phone number + device ID combination
+- User account uniquely identified by phone number
 - No support for multiple devices per phone number
-- Attempting to log in from new device with same phone number requires re-registration (MVP behavior)
+- If login occurs from a new device, account is rebound to the new device ID (hackathon behavior)
 
 ### Authentication Flow
 
 **Registration:**
 1. User opens app, enters USA phone number
 2. Phone number format validated (E.164 format for USA: +1XXXXXXXXXX)
-3. Twilio Verify sends 6-digit OTP via SMS
+3. Supabase Auth sends 6-digit OTP via SMS
 4. User enters OTP code
 5. Server validates code
-6. Device ID generated from device hardware characteristics
-7. Server creates user record with phone number + device ID
+6. Device ID generated from app/device context
+7. Server creates or updates user record with phone number + device ID
 8. Access token and refresh token generated
 9. Tokens stored in Tauri Stronghold encrypted vault
 10. User navigates to contact selection screen
@@ -234,14 +207,12 @@ Events (N) ----> (1) EventCategories
 - Required to unlock app and access features
 - Required to create emergency events
 - Falls back to device passcode if biometrics unavailable
-- No rate limiting in MVP
 
 ### Security Measures (MVP)
 
-- Tokens signed with HS256
-- Refresh token does not rotate in MVP
-- Device ID bound to hardware characteristics
-- Single device enforced by database constraints
+- Phone OTP login via Supabase Auth
+- Tokens stored in Stronghold vault
+- Device ID checked against current bound device on each session refresh
 - Session persists for 30 days with biometric re-auth
 
 ---
@@ -262,10 +233,10 @@ Events (N) ----> (1) EventCategories
 - Update interval: 30 seconds
 - Battery impact: Moderate
 
-**Low-Power Mode (Background):**
-- Cellular tower positioning only
+**Low-Power Mode:**
+- Reduced update frequency while app remains open
 - Accuracy target: Under 1 kilometer
-- Update interval: 5 minutes
+- Update interval: 2-5 minutes
 - Battery impact: Minimal
 
 ### Permission Handling
@@ -275,9 +246,8 @@ Events (N) ----> (1) EventCategories
 - Required for creating events
 - Required for viewing nearby public events
 
-**Background Permission (Optional):**
-- Requested during first event creation
-- Enables tracking during active emergency
+**Background Permission:**
+- Not used in MVP
 
 ### Location Fallback Chain
 
@@ -302,9 +272,10 @@ Events (N) ----> (1) EventCategories
 - Receives events where user is in creator's contact list
 - One-way notifications only
 
-**Public Regional Channel:** `public:{regionHash}`
-- Receives all public events within 50-mile radius
-- Region based on user's last known location
+**Public Event Delivery (MVP):**
+- Public events are fetched by location query (PostGIS) on app open, map move, and manual refresh
+- No precomputed public-recipient rows
+- No public push notification fanout in MVP
 
 ### Message Flow
 
@@ -312,21 +283,20 @@ Events (N) ----> (1) EventCategories
 1. User creates event with location, severity, category, broadcast type
 2. Server validates event data
 3. Event written to database with ExpiresAt set to 48 hours from creation
-4. Server identifies recipients based on broadcast type
+4. Server routes based on broadcast type
 
 **Private Broadcast:**
 1. Query creator's UserContacts list
-2. Filter contacts where hasApp is true
-3. Create EventRecipient records for each contact
-4. Push notification sent via FCM to each recipient
+2. Match contact phone numbers to Users table
+3. Create EventRecipient records for each matched user
+4. Push notification sent via FCM to matched recipients
 5. Real-time message sent to each recipient's private channel
 
 **Public Broadcast:**
-1. Query users within 50-mile radius using PostGIS from Events table
-2. Exclude users who have opted out of public alerts
-3. Create EventRecipient records for each matched user
-4. Batch push notifications
-5. Real-time message sent to regional channel
+1. Store public event in Events table
+2. Do not create EventRecipient rows
+3. Clients query public events by current map bounds + 50-mile rule
+4. Respect user public-alert opt-out in query filters
 
 **Public Event Anonymity:**
 - User ID is stored in Events table for tracking and moderation
@@ -346,7 +316,7 @@ Events (N) ----> (1) EventCategories
 **Crisis Alert:**
 - Sound: Custom emergency sound
 - Vibration: Aggressive pattern
-- Priority: High (bypasses silent mode)
+- Priority: High
 - Actions: "View on Map"
 
 **Alert (Warning):**
@@ -372,7 +342,7 @@ Events (N) ----> (1) EventCategories
 **Emergency Alerts:**
 - Importance: High
 - Sound: Custom emergency sound
-- Bypass DND: Enabled
+- Bypass DND: Not guaranteed (platform-managed)
 
 **Alerts:**
 - Importance: Default
@@ -389,9 +359,9 @@ Events (N) ----> (1) EventCategories
 - Coverage: Global
 - Attribution required
 
-**Offline Caching:**
+**Tile Performance:**
 - Cache tiles for user's region (zoom levels 12-16)
-- Service Worker for offline tile delivery
+- Standard HTTP/browser caching only
 - Cache expiration: 7 days
 
 ### Marker System
@@ -430,9 +400,9 @@ Events (N) ----> (1) EventCategories
 
 **Contact Processing:**
 1. Device contacts scanned for phone numbers
-2. Contacts compared against global Contacts table
-3. New contacts added to registry
-4. Existing contacts retrieved with current data
+2. Contacts normalized to E.164 format
+3. Contacts stored only in current user's UserContacts rows
+4. `hasApp` flag refreshed by matching against Users table
 
 **App Detection:**
 1. Phone numbers checked against Users table
@@ -542,7 +512,7 @@ Events (N) ----> (1) EventCategories
 
 **Event List View:**
 - Accessed via top-right button on map
-- Shows all events user has received
+- Shows all private events user has received and nearby public events
 - Tapping event zooms map to location
 - "Clear all" button to remove all events from list
 
@@ -560,11 +530,8 @@ Events (N) ----> (1) EventCategories
 - Visual indicator shows event has been acknowledged
 
 **Cleared State:**
-- User manually clears event from their list
-- ClearedAt timestamp recorded in EventRecipients table
-- Event removed from user's event list view
-- Event still visible on map for others (only removed from this user's list)
-- User can still access event if they navigate directly to it on map
+- Private events: User clears event from list, ClearedAt stored in EventRecipients
+- Public events: User can dismiss in current session only (no server-side clear record)
 
 **Expired State:**
 - Automatic after 48 hours from creation
@@ -584,7 +551,7 @@ Events (N) ----> (1) EventCategories
 
 **Push Notifications:**
 - Master toggle: Enable/disable all notifications
-- Critical alerts: Toggle (cannot be fully disabled due to emergency nature)
+- Crisis alerts: Toggle
 - Warning alerts: Toggle
 - Public alerts: Toggle (user can opt-out of receiving all public alerts)
 - Private alerts: Toggle
@@ -600,13 +567,11 @@ Events (N) ----> (1) EventCategories
 - Default: Balanced mode
 
 **Background Location:**
-- Enable/disable background tracking
-- Default: Enabled during active emergencies only
+- Not included in MVP
 
 **Privacy:**
-- Share location with contacts toggle
 - Participate in public alerts toggle (this is the opt-out for receiving public alerts)
-- Default: Both enabled
+- Default: Enabled
 
 ### Contact Settings
 
@@ -621,32 +586,6 @@ Events (N) ----> (1) EventCategories
 **Authentication:**
 - Logout button
 - Re-authentication required on next app open
-
----
-
-## Offline Functionality Design
-
-### Offline Capabilities
-
-**Cached Content:**
-- User's emergency contacts list
-- Event details of recently viewed events
-- Map tiles for user's region
-- User preferences
-
-**Offline Event Creation:**
-- Events queued locally when offline
-- Synced to server when connection restored
-- Timestamp reflects creation time, not sync time
-- Visual indicator shows queued events
-
-### Sync Strategy
-
-**Priority Queue:**
-1. Emergency event creation (highest)
-2. Event acknowledgment
-3. Contact list updates
-4. User preferences
 
 ---
 
@@ -719,11 +658,9 @@ Events (N) ----> (1) EventCategories
 **Location Testing:**
 - GPS accuracy verification
 - Indoor positioning fallback
-- Background location tracking
 
 **Network Testing:**
-- Offline mode functionality
-- Slow network conditions
+- Intermittent/slow network conditions
 - Connection recovery
 
 ---
@@ -740,7 +677,7 @@ Events (N) ----> (1) EventCategories
 
 **Infrastructure:**
 - Supabase Pro plan
-- Twilio Verify (USA only)
+- Supabase Auth (Phone OTP)
 - Firebase FCM (free)
 - OpenStreetMap tiles (free)
 
@@ -759,14 +696,14 @@ Events (N) ----> (1) EventCategories
 | Service | Monthly Cost |
 |----------|--------------|
 | Supabase Pro | $25 |
-| Twilio Verify (USA) | $50-100 |
+| Supabase Auth SMS | Variable usage |
 | Firebase FCM | $0 |
 | OpenStreetMap Tiles | $0 |
-| **Total** | **$75-125/month** |
+| **Total** | **$25 + SMS usage** |
 
 ### Projected Annual
 
-**Base:** $900-1,500/year
+**Base:** $300/year + SMS usage
 
 ---
 
@@ -777,8 +714,8 @@ Events (N) ----> (1) EventCategories
 **Deliverables:**
 - Tauri v2 project initialized with Svelte 5
 - Supabase project created and configured
-- Prisma schema defined and initial migration applied
-- Authentication flow (Twilio Verify + Supabase Auth)
+- SQL schema defined and initial migration applied
+- Authentication flow (Supabase Auth phone OTP)
 - Stronghold plugin for secure token storage
 - Biometric authentication flow
 - Basic UI shell with navigation
@@ -816,7 +753,7 @@ Events (N) ----> (1) EventCategories
 - Map interaction patterns
 - Location fallback chain
 - Accuracy display with color coding
-- Map tile caching via Service Worker
+- Map tile caching with standard HTTP caching
 
 **Success Criteria:**
 - Map displays with user location
@@ -849,15 +786,15 @@ Events (N) ----> (1) EventCategories
 **Deliverables:**
 - Supabase Realtime channel subscription
 - Private event broadcast to UserContacts list
-- Public event broadcast to nearby users (50-mile radius)
-- Event recipient tracking
+- Public event query by map bounds + radius
+- Private event recipient tracking
 - Message delivery confirmation
 - Connection management and reconnection
 
 **Success Criteria:**
 - Private contacts receive notifications
-- Public broadcasts reach users within 50-mile radius
-- Delivery status tracked
+- Public events load for users within 50-mile radius
+- Private delivery status tracked
 
 ---
 
@@ -874,7 +811,7 @@ Events (N) ----> (1) EventCategories
 **Success Criteria:**
 - Users receive push notifications for events
 - Tapping notification opens app to event on map
-- Critical alerts have enhanced behavior
+- Notification behavior is consistent on iOS and Android
 
 ---
 
@@ -915,20 +852,16 @@ Events (N) ----> (1) EventCategories
 
 ---
 
-### Stage 9: Offline Functionality (Week 18)
+### Stage 9: Reliability & Network Resilience (Week 18)
 
 **Deliverables:**
-- Service Worker for offline caching
-- IndexedDB for offline data
-- Offline event creation with queue
-- Sync strategy
-- Offline indicator UI
+- Retry handling for event creation and acknowledgments
 - Network status monitoring
+- Error-state UI for failed network operations
 
 **Success Criteria:**
-- App functions offline for basic operations
-- Queued events sync when connection restored
-- Users informed of offline status
+- Temporary network failures are handled gracefully
+- Users get clear feedback when actions fail or recover
 
 ---
 
@@ -989,5 +922,6 @@ Events (N) ----> (1) EventCategories
 **Public Events:** Anonymous (no creator information shown)
 **Private Events:** Shows which contact created the alert
 **Contacts:** Single list for private alert delivery
+**Offline Support:** Not included in MVP
 **Description Limit:** 500 characters
 **Opt-out:** Users can opt-out of public alerts
