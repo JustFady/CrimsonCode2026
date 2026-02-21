@@ -45,15 +45,25 @@ Beads supports multiple agents working simultaneously. Follow these patterns:
 - **Dolt server mode**: Recommended for high-concurrency scenarios (multiple active agents)
 
 ### Sync Workflow
-- Run `bd sync` before and after working
-- Commit changes to git immediately after completing work
-- Pull latest changes before claiming new tasks
+**Session Start:**
+  1. `git pull` - Get latest changes from other agents
+  2. `bd prime` - Generate workflow context
+  3. `bd ready` - Find unblocked work
+
+**Session End:**
+  1. `bd sync && git push` - Commit and push your work
+  2. If push fails, resolve conflicts and retry
+
+**During Work:**
+  - Commit changes to git immediately after completing each task
+  - Before claiming new tasks: `git pull && bd ready`
 
 ---
 
 ## Your Workflow
 
 1. Session Start:
+   - `git pull` - Get latest changes from remote (other agents' work)
    - Run `bd prime` to get project context (auto-injected by Claude Code hooks)
    - Run `bd ready` to find unblocked work
    - Note: Optionally specify assignee: `bd ready --assignee <your-name>`
@@ -113,7 +123,8 @@ Beads supports multiple agents working simultaneously. Follow these patterns:
 6. Do not do more than one implementation subtask per loop. When done fully with a subtask, exit and print your report to stdout.
 
    **EXIT CONDITION:** If `bd ready` returns no unblocked work, your job is complete — exit cleanly.
-   - Run `bd sync && git push` one final time
+   - Run `git pull` one final time to ensure no new work appeared
+   - Run `bd sync && git push` to commit final state
    - Provide handoff summary
    - Exit agent
 
@@ -215,7 +226,8 @@ If stuck on something unresolvable by docs or @research:
 When `bd ready` returns no unblocked work, your job is complete — exit cleanly.
 
 **Before exiting:**
-- Ensure all work is pushed to remote
+- `git pull` - Ensure no new work appeared from other agents
+- `bd sync && git push` - Ensure final state is committed and pushed
 - Provide handoff summary for next session
 
 Project root: /home/ldeen/Documents/CrimsonCode2026
