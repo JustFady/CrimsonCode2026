@@ -37,19 +37,28 @@ import kotlinx.coroutines.delay
 private const val RESEND_DELAY_SECONDS = 30
 
 /**
+ * Result of OTP verification attempt
+ */
+sealed class OtpVerificationResult {
+    data object Success : OtpVerificationResult()
+    data class Error(val message: String) : OtpVerificationResult()
+}
+
+/**
  * OTP verification screen for 6-digit code entry
  *
  * @param phoneNumber Phone number for display (masked format)
- * @param onVerify Callback when user submits OTP code
+ * @param onVerify Suspended callback when user submits OTP code - returns verification result
  * @param onResend Callback when user requests resend OTP
  * @param onBack Callback when user navigates back
  */
 @Composable
 fun OtpVerificationScreen(
     phoneNumber: String,
-    onVerify: (String) -> Unit,
+    onVerify: suspend (String) -> OtpVerificationResult,
     onResend: () -> Unit,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onVerificationSuccess: () -> Unit = {}
 ) {
     var otpValue by remember { mutableStateOf(TextFieldValue()) }
     var error by remember { mutableStateOf<String?>(null) }
@@ -140,7 +149,7 @@ fun OtpVerificationScreen(
                     onClick = {
                         if (otpValue.text.length == 6) {
                             isLoading = true
-                            onVerify(otpValue.text)
+                            error = null
                         } else {
                             error = "Please enter the 6-digit code"
                         }
@@ -149,6 +158,21 @@ fun OtpVerificationScreen(
                     modifier = Modifier.width(160.dp)
                 ) {
                     Text(if (isLoading) "Verifying..." else "Verify")
+                }
+            }
+
+            // Handle OTP verification when isLoading changes to true
+            LaunchedEffect(isLoading, otpValue.text) {
+                if (isLoading && otpValue.text.length == 6) {
+                    when (val result = onVerify(otpValue.text)) {
+                        is OtpVerificationResult.Success -> {
+                            onVerificationSuccess()
+                        }
+                        is OtpVerificationResult.Error -> {
+                            isLoading = false
+                            error = result.message
+                        }
+                    }
                 }
             }
 

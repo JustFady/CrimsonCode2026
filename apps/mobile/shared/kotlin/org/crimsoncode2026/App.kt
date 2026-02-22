@@ -24,6 +24,7 @@ import kotlinx.coroutines.flow.first
 import org.crimsoncode2026.auth.AuthRepository
 import org.crimsoncode2026.screens.auth.BiometricUnlockScreen
 import org.crimsoncode2026.screens.auth.DisplayNameScreen
+import org.crimsoncode2026.screens.auth.OtpVerificationResult
 import org.crimsoncode2026.screens.auth.OtpVerificationScreen
 import org.crimsoncode2026.screens.auth.PhoneEntryScreen
 import org.crimsoncode2026.screens.main.MainScreen
@@ -35,6 +36,8 @@ import org.crimsoncode2026.screens.publicevents.EventListView
 import org.crimsoncode2026.screens.publicevents.EventListItem
 import org.crimsoncode2026.domain.usecases.SessionInitUseCase
 import org.crimsoncode2026.domain.usecases.SessionInitResult
+import org.crimsoncode2026.domain.usecases.RegisterUserUseCase
+import org.crimsoncode2026.domain.usecases.RegistrationResult
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import org.koin.compose.koinInject
@@ -54,7 +57,7 @@ object PhoneEntryDestination
 data class OtpVerificationDestination(val phoneNumber: String)
 
 @Serializable
-object DisplayNameDestination
+data class DisplayNameDestination(val phoneNumber: String, val otpToken: String)
 
 @Serializable
 object BiometricUnlockDestination
@@ -154,32 +157,53 @@ fun App() {
                 // OTP verification
                 composable<OtpVerificationDestination> { backStackEntry ->
                     val phoneNumber = backStackEntry.toRoute<OtpVerificationDestination>().phoneNumber
+                    val authRepository: AuthRepository by inject()
+                    var currentOtp by remember { mutableStateOf<String?>(null) }
+
                     OtpVerificationScreen(
                         phoneNumber = phoneNumber,
                         onVerify = { otp ->
-                            // TODO: Verify OTP via AuthRepository
-                            // For now, navigate to display name
-                            navController.navigate(DisplayNameDestination) {
-                                popUpTo(PhoneEntryDestination) { inclusive = true }
+                            currentOtp = otp
+                            when (val result = authRepository.verifyOtp(phoneNumber, otp)) {
+                                is AuthResult.Success -> OtpVerificationResult.Success
+                                is AuthResult.Error -> OtpVerificationResult.Error(result.message)
                             }
                         },
                         onResend = {
-                            // TODO: Resend OTP via AuthRepository
+                            authRepository.sendOtp(phoneNumber)
                         },
                         onBack = {
                             navController.popBackStack()
+                        },
+                        onVerificationSuccess = {
+                            currentOtp?.let { otpToken ->
+                                navController.navigate(DisplayNameDestination(phoneNumber, otpToken)) {
+                                    popUpTo(PhoneEntryDestination) { inclusive = true }
+                                }
+                            }
                         }
                     )
                 }
 
                 // Display name entry for new users
-                composable<DisplayNameDestination> {
+                composable<DisplayNameDestination> { backStackEntry ->
+                    val params = backStackEntry.toRoute<DisplayNameDestination>()
+                    val registerUserUseCase: RegisterUserUseCase = koinInject()
+
                     DisplayNameScreen(
                         onSave = { displayName ->
-                            // TODO: Save display name via RegisterUserUseCase
-                            // Then navigate to main app
-                            navController.navigate(MainDestination) {
-                                popUpTo(SessionInitDestination) { inclusive = true }
+                            when (val result = registerUserUseCase(params.phoneNumber, displayName, params.otpToken)) {
+                                is RegistrationResult.Success -> {
+                                    // Navigate to main app
+                                    navController.navigate(MainDestination) {
+                                        popUpTo(SessionInitDestination) { inclusive = true }
+                                    }
+                                }
+                                is RegistrationResult.Error -> {
+                                    // For now, just show error and stay on screen
+                                    // In a real implementation, we'd add error state to DisplayNameScreen
+                                    navController.popBackStack()
+                                }
                             }
                         }
                     )
