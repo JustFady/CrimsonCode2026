@@ -23,6 +23,7 @@ kotlin {
         iosSimulatorArm64()
     ).forEach { iosTarget ->
         iosTarget.binaries.framework {
+            export(libs.kmpnotifier.get())
             baseName = "ComposeApp"
             isStatic = true
         }
@@ -77,6 +78,8 @@ kotlin {
             implementation(libs.supabase.auth.kt)
             implementation(libs.supabase.postgrest.kt)
             implementation(libs.supabase.realtime.kt)
+
+            implementation(libs.kmpnotifier)
         }
     }
 }
