@@ -13,12 +13,7 @@ sealed class SessionInitResult {
     data object NeedsOtpLogin : SessionInitResult()
 
     /**
-     * Valid session exists - user must authenticate with biometrics
-     */
-    data class NeedsBiometricUnlock(val userId: String) : SessionInitResult()
-
-    /**
-     * Session is ready to use (no biometric unlock required in this flow)
+     * Session is ready to use
      */
     data class SessionReady(val userId: String) : SessionInitResult()
 
@@ -33,7 +28,7 @@ sealed class SessionInitResult {
  * Determines what authentication flow to show on app launch:
  * 1. Check for existing refresh token in encrypted storage
  * 2. Validate session via UserSessionManager
- * 3. Return appropriate flow (OTP login or biometric unlock)
+ * 3. Return appropriate flow (OTP login or session ready)
  */
 class SessionInitUseCase(
     private val authRepository: AuthRepository,
@@ -71,8 +66,8 @@ class SessionInitUseCase(
             return SessionInitResult.NeedsOtpLogin
         }
 
-        // Step 5: Valid session exists, need biometric unlock
-        return SessionInitResult.NeedsBiometricUnlock(userId)
+        // Step 5: Valid session exists, proceed to main app
+        return SessionInitResult.SessionReady(userId)
     }
 
     /**

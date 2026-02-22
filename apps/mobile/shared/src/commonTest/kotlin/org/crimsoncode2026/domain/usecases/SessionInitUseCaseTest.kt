@@ -147,10 +147,10 @@ class SessionInitUseCaseTest {
         )
     }
 
-    // ==================== NeedsBiometricUnlock Tests ====================
+    // ==================== SessionReady Tests ====================
 
     @Test
-    fun `invoke returns NeedsBiometricUnlock with valid session`() = runTest {
+    fun `invoke returns SessionReady with valid session`() = runTest {
         // Arrange
         val userId = "user-12345"
         mockAuthRepository.setRefreshToken("valid_refresh_token")
@@ -161,11 +161,11 @@ class SessionInitUseCaseTest {
 
         // Assert
         assertTrue(
-            result is SessionInitResult.NeedsBiometricUnlock,
-            "Should require biometric unlock with valid session"
+            result is SessionInitResult.SessionReady,
+            "Should be ready with valid session"
         )
-        val unlockResult = result as SessionInitResult.NeedsBiometricUnlock
-        assertEquals(userId, unlockResult.userId, "User ID should match")
+        val readyResult = result as SessionInitResult.SessionReady
+        assertEquals(userId, readyResult.userId, "User ID should match")
     }
 
     @Test
@@ -251,8 +251,8 @@ class SessionInitUseCaseTest {
 
         // Step 3: Check after login
         val loggedInResult = sessionInitUseCase()
-        assertTrue(loggedInResult is SessionInitResult.NeedsBiometricUnlock, "Should be ready")
-        assertEquals(userId, (loggedInResult as SessionInitResult.NeedsBiometricUnlock).userId)
+        assertTrue(loggedInResult is SessionInitResult.SessionReady, "Should be ready")
+        assertEquals(userId, (loggedInResult as SessionInitResult.SessionReady).userId)
 
         // Step 4: Logout
         sessionInitUseCase.clearSession()
@@ -272,12 +272,12 @@ class SessionInitUseCaseTest {
 
         // Act - check with same use case
         val firstResult = sessionInitUseCase()
-        assertTrue(firstResult is SessionInitResult.NeedsBiometricUnlock)
+        assertTrue(firstResult is SessionInitResult.SessionReady)
 
         // Assert - session still valid
         val secondResult = sessionInitUseCase()
-        assertTrue(secondResult is SessionInitResult.NeedsBiometricUnlock)
-        assertEquals(userId, (secondResult as SessionInitResult.NeedsBiometricUnlock).userId)
+        assertTrue(secondResult is SessionInitResult.SessionReady)
+        assertEquals(userId, (secondResult as SessionInitResult.SessionReady).userId)
     }
 
     // ==================== Mock Implementations ====================

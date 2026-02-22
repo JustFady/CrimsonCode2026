@@ -22,7 +22,6 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import kotlinx.coroutines.flow.first
 import org.crimsoncode2026.auth.AuthRepository
-import org.crimsoncode2026.screens.auth.BiometricUnlockScreen
 import org.crimsoncode2026.screens.auth.DisplayNameScreen
 import org.crimsoncode2026.screens.auth.OtpVerificationResult
 import org.crimsoncode2026.screens.auth.OtpVerificationScreen
@@ -59,9 +58,6 @@ data class OtpVerificationDestination(val phoneNumber: String)
 
 @Serializable
 data class DisplayNameDestination(val phoneNumber: String, val otpToken: String)
-
-@Serializable
-object BiometricUnlockDestination
 
 @Serializable
 object MainDestination
@@ -128,11 +124,6 @@ fun App() {
                     SessionInitScreen(
                         onNeedsOtpLogin = {
                             navController.navigate(PhoneEntryDestination) {
-                                popUpTo(SessionInitDestination) { inclusive = true }
-                            }
-                        },
-                        onNeedsBiometricUnlock = {
-                            navController.navigate(BiometricUnlockDestination) {
                                 popUpTo(SessionInitDestination) { inclusive = true }
                             }
                         },
@@ -209,22 +200,6 @@ fun App() {
                                     // In a real implementation, we'd add error state to DisplayNameScreen
                                     navController.popBackStack()
                                 }
-                            }
-                        }
-                    )
-                }
-
-                // Biometric unlock
-                composable<BiometricUnlockDestination> {
-                    BiometricUnlockScreen(
-                        onUnlockSuccess = {
-                            navController.navigate(MainDestination) {
-                                popUpTo(SessionInitDestination) { inclusive = true }
-                            }
-                        },
-                        onLogout = {
-                            navController.navigate(PhoneEntryDestination) {
-                                popUpTo(SessionInitDestination) { inclusive = true }
                             }
                         }
                     )
@@ -335,7 +310,6 @@ fun App() {
 @Composable
 private fun SessionInitScreen(
     onNeedsOtpLogin: () -> Unit,
-    onNeedsBiometricUnlock: () -> Unit,
     onSessionReady: () -> Unit,
     onError: () -> Unit
 ) {
@@ -346,7 +320,6 @@ private fun SessionInitScreen(
         if (!hasHandled) {
             when (sessionInitUseCase()) {
                 is SessionInitResult.NeedsOtpLogin -> onNeedsOtpLogin()
-                is SessionInitResult.NeedsBiometricUnlock -> onNeedsBiometricUnlock()
                 is SessionInitResult.SessionReady -> onSessionReady()
                 is SessionInitResult.Error -> onError()
             }
