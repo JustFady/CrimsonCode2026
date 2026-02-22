@@ -47,11 +47,13 @@ actual object DeviceLocationProvider {
                 }
         }
 
+        // For the explicit "Locate" action prefer a fresh fix only. Stale cached fused locations
+        // can be wildly wrong on emulators (e.g. SF) even when the map camera/user dot is elsewhere.
         val location = when {
             isUsableFreshLocation(fresh) -> fresh
-            isUsableCachedLocation(lastKnown) -> lastKnown
             fresh != null -> fresh
-            else -> lastKnown
+            isUsableCachedLocation(lastKnown) -> lastKnown
+            else -> null
         }
 
         return location?.let {

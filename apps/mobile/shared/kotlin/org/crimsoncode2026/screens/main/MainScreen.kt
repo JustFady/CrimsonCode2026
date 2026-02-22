@@ -358,12 +358,13 @@ fun MainScreen(
     if (showCreateDialog) {
         CreateEventDialog(
             creating = creatingEvent,
-            currentLocation = currentLocation ?: mapCenter,
+            currentLocation = currentLocation,
+            mapCenter = mapCenter,
             onDismiss = { if (!creatingEvent) showCreateDialog = false },
             onSubmit = { form ->
-                val center = (currentLocation ?: mapCenter)
+                val center = currentLocation ?: mapCenter
                 if (center == null) {
-                    createMessage = "Create failed: location not available yet."
+                    createMessage = "Create failed: location unavailable."
                     return@CreateEventDialog
                 }
                 if (supabaseUrl.isBlank() || supabaseAnonKey.isBlank()) {
@@ -413,6 +414,7 @@ fun MainScreen(
 private fun CreateEventDialog(
     creating: Boolean,
     currentLocation: Pair<Double, Double>?,
+    mapCenter: Pair<Double, Double>?,
     onDismiss: () -> Unit,
     onSubmit: (CreateEventForm) -> Unit
 ) {
@@ -428,10 +430,18 @@ private fun CreateEventDialog(
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text(
-                    currentLocation?.let { "Location: ${it.first.formatCoord()}, ${it.second.formatCoord()}" }
-                        ?: "Location: unavailable",
+                    currentLocation?.let { "Using device location: ${it.first.formatCoord()}, ${it.second.formatCoord()}" }
+                        ?: mapCenter?.let { "Using map center: ${it.first.formatCoord()}, ${it.second.formatCoord()}" }
+                        ?: "Location unavailable",
                     style = MaterialTheme.typography.bodySmall
                 )
+                mapCenter?.let {
+                    Text(
+                        "Map center: ${it.first.formatCoord()}, ${it.second.formatCoord()}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color(0xFF6B7280)
+                    )
+                }
                 OutlinedTextField(
                     value = description,
                     onValueChange = { description = it.take(500) },
