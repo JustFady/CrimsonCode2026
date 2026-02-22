@@ -30,21 +30,36 @@ Beads supports multiple agents working simultaneously. Follow these patterns:
 ### Concurrency Handling
 - **Hash-based IDs**: Each issue gets unique hash ID (e.g., `crimsoncode-a1b2`) - prevents collisions
 - **Last-writer-wins**: If two agents modify the same issue, git handles merge conflicts
-- **Dolt server mode**: Recommended for high-concurrency scenarios (multiple active agents)
+- **Git-based coordination**: This project uses git (not Dolt) for version control
 
 ### Sync Workflow
+
+**CRITICAL: Always sync before and after work sessions to prevent conflicts**
+
 **Session Start:**
-  1. `git pull` - Get latest changes from other agents
+  1. `git pull` - Get latest changes from other agents (REQUIRED - other agents may have pushed)
   2. `bd prime` - Generate workflow context
   3. `bd ready` - Find unblocked work
+  4. Check: Look at assignee field in `bd ready` output to ensure task is not already claimed
 
 **Session End:**
   1. `bd sync && git push` - Commit and push your work
-  2. If push fails, resolve conflicts and retry
+  2. If push fails due to other agent's push:
+     a. Run `git pull` to merge their changes
+     b. Resolve any merge conflicts
+     c. `bd sync && git push` again
+     d. Repeat until push succeeds
 
 **During Work:**
   - Commit changes to git immediately after completing each task
-  - Before claiming new tasks: `git pull && bd ready`
+  - Before claiming new tasks: `git pull && bd ready` (sync first, then claim)
+  - For tasks blocked by other agents: Wait, do not modify their in-progress work
+
+**Parallel Work Guidelines:**
+  - Multiple agents can work on independent tasks simultaneously
+  - Do NOT claim tasks already in_progress by another agent
+  - Coordinate via `bd ready --assignee` to find agent-specific work
+  - If you claim a task and find another agent already working, add comment and find different work
 
 ---
 
