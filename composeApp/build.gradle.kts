@@ -68,6 +68,9 @@ kotlin {
 
             implementation(libs.moko.biometry)
             implementation(libs.moko.biometry.compose)
+
+            implementation(libs.ksafe)
+            implementation(libs.ksafe.compose)
         }
     }
 }
