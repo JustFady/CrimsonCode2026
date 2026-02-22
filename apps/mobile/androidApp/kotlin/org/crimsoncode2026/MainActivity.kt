@@ -7,6 +7,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.LaunchedEffect
 import org.crimsoncode2026.auth.ContextProvider
+import org.crimsoncode2026.notifications.NotificationChannelInitializer
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -14,6 +15,9 @@ class MainActivity : ComponentActivity() {
 
         // Initialize ContextProvider for secure storage access
         ContextProvider.initialize(this)
+
+        // Initialize Android notification channels
+        NotificationChannelInitializer.initializeChannels(this)
 
         enableEdgeToEdge()
         setContent {

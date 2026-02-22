@@ -53,10 +53,11 @@ class NotificationPresenter(
         const val KEY_LON = "lon"
         const val KEY_DEEP_LINK = "deep_link"
         const val KEY_VIEW_ON_MAP = "view_on_map"
+        const val KEY_CHANNEL_ID = "channel_id"
     }
 
     /**
-     * Get the local notifier instance from KmpNotifier
+     * Get local notifier instance from KmpNotifier
      */
     private val localNotifier
         get() = NotifierManager.getLocalNotifier()
@@ -103,7 +104,7 @@ class NotificationPresenter(
     /**
      * Build payload data map for notification
      *
-     * Includes event_id, coordinates, severity, category, and deep link URL
+     * Includes event_id, coordinates, severity, category, deep link URL, and channel ID
      *
      * @param options Notification configuration
      * @return Map of payload data
@@ -113,6 +114,7 @@ class NotificationPresenter(
             put(KEY_EVENT_ID, options.eventId)
             put(KEY_SEVERITY, options.severity.value)
             put(KEY_CATEGORY, options.category)
+            put(KEY_CHANNEL_ID, NotificationChannelProvider.getChannelId(options.severity == Severity.CRISIS))
 
             if (options.lat != null && options.lon != null) {
                 put(KEY_LAT, options.lat)
