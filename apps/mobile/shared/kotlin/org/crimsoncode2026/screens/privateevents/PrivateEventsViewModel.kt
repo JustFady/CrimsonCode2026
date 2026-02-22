@@ -3,14 +3,11 @@ package org.crimsoncode2026.screens.privateevents
 import androidx.compose.runtime.Stable
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import org.crimsoncode2026.data.RealtimeChannelStatus
 import org.crimsoncode2026.data.RealtimeEventPayload
-import org.crimsoncode2026.data.RealtimeService
 import org.crimsoncode2026.domain.usecases.GetReceivedEventsResult
 import org.crimsoncode2026.domain.usecases.GetReceivedEventsUseCase
 import org.crimsoncode2026.domain.usecases.MarkEventOpenedResult
@@ -18,7 +15,6 @@ import org.crimsoncode2026.domain.usecases.MarkEventOpenedUseCase
 import org.crimsoncode2026.domain.usecases.SubscribeToPrivateEventsUseCase
 import org.crimsoncode2026.domain.usecases.SubscribeToPrivateEventsResult
 import org.crimsoncode2026.domain.usecases.IncomingPrivateEvent
-import org.crimsoncode2026.domain.UserSessionManager
 
 /**
  * UI state for received events list
@@ -51,8 +47,6 @@ class PrivateEventsViewModel(
     private val getReceivedEventsUseCase: GetReceivedEventsUseCase,
     private val markEventOpenedUseCase: MarkEventOpenedUseCase,
     private val subscribeToPrivateEventsUseCase: SubscribeToPrivateEventsUseCase,
-    private val realtimeService: RealtimeService,
-    private val userSessionManager: UserSessionManager,
     private val scope: CoroutineScope
 ) {
     // Private mutable state
@@ -88,12 +82,6 @@ class PrivateEventsViewModel(
      * Load received events from server
      */
     fun loadReceivedEvents() {
-        val userId = userSessionManager.getCurrentUserId()
-        if (userId == null) {
-            _uiState.value = PrivateEventsUiState.Error("User not authenticated")
-            return
-        }
-
         scope.launch {
             _uiState.value = PrivateEventsUiState.Loading
 
@@ -122,8 +110,6 @@ class PrivateEventsViewModel(
             return
         }
 
-        subscriptionJob = subscribeToPrivateEventsUseCase
-
         scope.launch {
             when (subscribeToPrivateEventsUseCase(object : SubscribeToPrivateEventsUseCase.PrivateEventListener {
                 override fun onIncomingEvent(event: IncomingPrivateEvent) {
@@ -142,10 +128,10 @@ class PrivateEventsViewModel(
                     _connectionStatus.value = status
                 }
             }) {
-                is SubscribeToPrivateEventsUseCase.Result.Success -> {
+                is SubscribeToPrivateEventsResult.Success -> {
                     _isSubscribed.value = true
                 }
-                is SubscribeToPrivateEventsUseCase.Result.Error -> {
+                is SubscribeToPrivateEventsResult.Error -> {
                     _isSubscribed.value = false
                 }
             }
@@ -340,8 +326,7 @@ class PrivateEventsViewModel(
      * Cleanup when ViewModel is no longer needed
      */
     fun cleanup() {
-        subscriptionJob?.unsubscribe()
-        subscriptionJob = null
+        subscribeToPrivateEventsUseCase.unsubscribe()
         _isSubscribed.value = false
     }
 }

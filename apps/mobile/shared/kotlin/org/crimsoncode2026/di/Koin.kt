@@ -27,6 +27,8 @@ import org.crimsoncode2026.domain.usecases.UpdateFcmTokenUseCase
 import org.crimsoncode2026.domain.usecases.UpdateLastActiveUseCase
 import org.crimsoncode2026.domain.usecases.RegisterFcmTokenUseCase
 import org.crimsoncode2026.domain.usecases.GetReceivedEventsUseCase
+import org.crimsoncode2026.domain.usecases.MarkEventOpenedUseCase
+import org.crimsoncode2026.domain.usecases.SubscribeToPrivateEventsUseCase
 import org.crimsoncode2026.location.LocationRepository
 import org.crimsoncode2026.location.permissions.LocationPermissionHandler
 import org.crimsoncode2026.location.LocationState
@@ -36,6 +38,7 @@ import org.crimsoncode2026.contacts.DeviceContactsService
 import org.crimsoncode2026.domain.usecases.AppUserDetectionUseCase
 import org.crimsoncode2026.domain.usecases.ImportContactsUseCase
 import org.crimsoncode2026.screens.contacts.ContactsViewModel
+import org.crimsoncode2026.screens.privateevents.PrivateEventsViewModel
 import org.crimsoncode2026.domain.usecases.FcmTokenInitializationUseCase
 import org.crimsoncode2026.notifications.FcmTokenManager
 import org.crimsoncode2026.notifications.FcmTokenRepository
@@ -159,6 +162,24 @@ val authModule = module {
 
     // Events Use Cases
     single { GetReceivedEventsUseCase(get(), get(), get(), get()) }
+    single { MarkEventOpenedUseCase(get(), get()) }
+    single { SubscribeToPrivateEventsUseCase(get(), get()) }
+}
+
+/**
+ * Koin module for event management screens and ViewModels
+ * Provides ViewModels for received events display and interaction
+ */
+val eventsModule = module {
+    // Private Events ViewModel - state management for received events list
+    factory { params ->
+        PrivateEventsViewModel(
+            getReceivedEventsUseCase = get(),
+            markEventOpenedUseCase = get(),
+            subscribeToPrivateEventsUseCase = get(),
+            scope = params.get()
+        )
+    }
 }
 
 fun initKoin() {
@@ -170,6 +191,7 @@ fun initKoin() {
             locationModule,
             notificationsModule,
             contactsModule,
+            eventsModule,
         )
     }
 
