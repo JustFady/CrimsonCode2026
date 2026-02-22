@@ -110,11 +110,14 @@ Cross-platform emergency response mobile application for USA users. Single devic
   - Device ID (unique, indexed)
   - FCM token (indexed)
   - Platform: enum (ANDROID, IOS)
-  - DeviceModel: string
   - isActive: boolean
   - createdAt: timestamp
+  - updatedAt: timestamp
   - lastActiveAt: timestamp
 - Constraint: One user per phone number
+- Notes:
+  - `displayName` is mutable; private event UI should resolve sender name from current Users row
+  - One-device-per-phone behavior is enforced by rebinding `device_id` on login
 
 ### UserContacts Table
 - Primary Key: UUID
@@ -123,9 +126,14 @@ Cross-platform emergency response mobile application for USA users. Single devic
   - Contact phone number (indexed)
   - Display name
   - hasApp: boolean
-  - AddedAt: timestamp
+  - contactUserId: UUID (nullable, resolved app user cache)
+  - createdAt: timestamp
+  - updatedAt: timestamp
 - Constraint: Unique combination of user and contact phone number
 - Purpose: The list of private contacts for alert delivery
+- Notes:
+  - Contacts are stored by normalized phone number (not only user ID) so non-app contacts can exist in the same list
+  - `contactUserId` is a cache/optimization and may be null if contact has not registered
 
 ### Events Table
 - Primary Key: UUID
@@ -138,12 +146,13 @@ Cross-platform emergency response mobile application for USA users. Single devic
   - LocationOverride: string (optional, for manual location entry)
   - BroadcastType: enum (PUBLIC, PRIVATE)
   - Description: string (max 500 characters)
-  - IsAnonymous: boolean (true for public events, false for private)
+  - IsAnonymous: boolean (typically true for public, false for private)
   - ExpiresAt: timestamp (createdAt + 48 hours)
   - CreatedAt: timestamp
+  - deletedAt: timestamp (nullable, optional soft-delete/moderation)
 - Indexes:
   - User ID
-  - Location (PostGIS for radius queries)
+  - Location (PostGIS preferred; float lat/lon fallback acceptable for hackathon MVP)
   - Severity
   - BroadcastType
   - ExpiresAt
@@ -153,10 +162,27 @@ Cross-platform emergency response mobile application for USA users. Single devic
 - Primary Key: Composite (eventId, userId)
 - Fields:
   - Event ID (foreign key)
-  - User ID (foreign key)
+  - User ID (foreign key, recipient)
+  - deliveryStatus: enum/text (PENDING, SENT, FAILED)
   - NotifiedAt: timestamp
+  - OpenedAt: timestamp (optional)
   - ClearedAt: timestamp (optional, when user clears from their list)
 - Purpose: Track private recipients and delivery status
+- Notes:
+  - This table is used for private broadcasts only
+  - `notifiedAt` must live here (recipient-specific), not on `Events`
+
+### EventUserState Table (Optional for server-tracked public dismiss)
+- Primary Key: Composite (eventId, userId)
+- Fields:
+  - Event ID (foreign key)
+  - User ID (foreign key)
+  - isDismissed: boolean
+  - dismissedAt: timestamp (optional)
+  - lastSeenAt: timestamp (optional)
+- Purpose:
+  - Optional table for persisting per-user state for public events
+  - Can be deferred in MVP if public dismiss remains local/session-only
 
 ---
 
@@ -166,6 +192,7 @@ Cross-platform emergency response mobile application for USA users. Single devic
 Users (1) ----< (N) UserContacts
 Users (1) ----< (N) Events
 Users (1) ----< (N) EventRecipients ----> (N) Events
+Users (1) ----< (N) EventUserState ----> (N) Events   [optional]
 ```
 
 ---
@@ -539,7 +566,7 @@ Users (1) ----< (N) EventRecipients ----> (N) Events
 
 **Cleared State:**
 - Private events: User clears event from list, ClearedAt stored in EventRecipients
-- Public events: User can dismiss in current session only (no server-side clear record)
+- Public events: User can dismiss in current session only (MVP default); optional `EventUserState` enables server-side persistence later
 
 **Expired State:**
 - Automatic after 48 hours from creation
@@ -936,6 +963,8 @@ Users (1) ----< (N) EventRecipients ----> (N) Events
 **Public Events:** Anonymous (no creator information shown)
 **Private Events:** Shows creator's display name to recipients
 **Contacts:** Single list for private alert delivery
+**Private Delivery Tracking:** Stored per recipient in `EventRecipients`
+**Public Dismiss Persistence:** Optional (`EventUserState`), local/session-only by default in MVP
 **Offline Support:** Not included in MVP
 **Description Limit:** 500 characters
 **Opt-out:** Users can opt-out of public alerts (local device setting)
