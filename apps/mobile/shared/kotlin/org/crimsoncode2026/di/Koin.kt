@@ -25,11 +25,13 @@ import org.crimsoncode2026.domain.usecases.SessionInitUseCase
 import org.crimsoncode2026.domain.usecases.UpdateDisplayNameUseCase
 import org.crimsoncode2026.domain.usecases.UpdateFcmTokenUseCase
 import org.crimsoncode2026.domain.usecases.UpdateLastActiveUseCase
+import org.crimsoncode2026.domain.usecases.RegisterFcmTokenUseCase
 import org.crimsoncode2026.location.LocationRepository
 import org.crimsoncode2026.location.permissions.LocationPermissionHandler
 import org.crimsoncode2026.location.LocationState
 import org.crimsoncode2026.notifications.permissions.NotificationPermissionHandler
 import org.crimsoncode2026.contacts.permissions.ContactsPermissionHandler
+import org.crimsoncode2026.contacts.DeviceContactsService
 import org.crimsoncode2026.notifications.FcmTokenManager
 import io.github.mirzemehdi.kmpnotifier.KmpNotifier
 import org.crimsoncode2026.location.IpGeolocationService
@@ -59,7 +61,11 @@ val notificationsModule = module {
 }
 
 val contactsModule = module {
+    // Contacts Permission Handler
     factory { params -> ContactsPermissionHandler(get(PermissionsController)) }
+
+    // Device Contacts Service - imports device contacts using Kontacts library
+    single { DeviceContactsService() }
 }
 
 /**
@@ -115,6 +121,9 @@ val authModule = module {
     single { UpdateDisplayNameUseCase(get()) }
     single { UpdateFcmTokenUseCase(get()) }
     single { UpdateLastActiveUseCase(get()) }
+
+    // FCM Token Registration Use Case
+    single { RegisterFcmTokenUseCase(get(), get()) }
 
     // User Session Manager
     single { UserSessionManager(get(), get()) }
