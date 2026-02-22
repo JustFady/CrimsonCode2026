@@ -24,6 +24,7 @@ import org.crimsoncode2026.screens.auth.DisplayNameScreen
 import org.crimsoncode2026.screens.auth.OtpVerificationScreen
 import org.crimsoncode2026.screens.auth.PhoneEntryScreen
 import org.crimsoncode2026.screens.main.MainScreen
+import org.crimsoncode2026.screens.settings.SettingsScreen
 import org.crimsoncode2026.domain.usecases.SessionInitUseCase
 import org.crimsoncode2026.domain.usecases.SessionInitResult
 import org.koin.core.component.KoinComponent
@@ -48,6 +49,9 @@ object BiometricUnlockDestination
 
 @Serializable
 object MainDestination
+
+@Serializable
+object SettingsDestination
 
 /**
  * Main App composable
@@ -151,6 +155,11 @@ fun App() {
                 // Main app screen
                 composable<MainDestination> {
                     MainScreen()
+                }
+
+                // Settings screen
+                composable<SettingsDestination> {
+                    SettingsScreen()
                 }
             }
         }
