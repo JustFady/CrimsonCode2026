@@ -29,6 +29,9 @@ import org.crimsoncode2026.location.LocationRepository
 import org.crimsoncode2026.location.permissions.LocationPermissionHandler
 import org.crimsoncode2026.location.LocationState
 import org.crimsoncode2026.notifications.permissions.NotificationPermissionHandler
+import org.crimsoncode2026.contacts.permissions.ContactsPermissionHandler
+import org.crimsoncode2026.notifications.FcmTokenManager
+import io.github.mirzemehdi.kmpnotifier.KmpNotifier
 import org.crimsoncode2026.location.IpGeolocationService
 import org.crimsoncode2026.storage.SecureStorage
 import org.crimsoncode2026.di.supabaseClientModule
@@ -45,7 +48,18 @@ val locationModule = module {
 }
 
 val notificationsModule = module {
+    // KMPNotifier - main instance for FCM token management
+    single { KmpNotifier() }
+
+    // Notification Permission Handler
     factory { params -> NotificationPermissionHandler(get(PermissionsController)) }
+
+    // FCM Token Manager - handles token retrieval and caching
+    single { FcmTokenManager(get(), get()) }
+}
+
+val contactsModule = module {
+    factory { params -> ContactsPermissionHandler(get(PermissionsController)) }
 }
 
 /**
@@ -114,6 +128,7 @@ fun initKoin() {
             authModule,
             locationModule,
             notificationsModule,
+            contactsModule,
         )
     }
 
