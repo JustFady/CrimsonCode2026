@@ -37,6 +37,7 @@ import org.crimsoncode2026.location.LocationRepository
 import org.crimsoncode2026.location.permissions.LocationPermissionHandler
 import org.crimsoncode2026.location.LocationState
 import org.crimsoncode2026.notifications.permissions.NotificationPermissionHandler
+import org.crimsoncode2026.notifications.NotificationPresenter
 import org.crimsoncode2026.contacts.permissions.ContactsPermissionHandler
 import org.crimsoncode2026.contacts.DeviceContactsService
 import org.crimsoncode2026.domain.usecases.AppUserDetectionUseCase
@@ -81,6 +82,9 @@ val notificationsModule = module {
 
     // FCM Token Initialization Use Case - handles token refresh on app launch
     single { FcmTokenInitializationUseCase(get(), get()) }
+
+    // Notification Presenter - displays notifications with severity-based styling
+    single { NotificationPresenter(CoroutineScope(SupervisorJob() + Dispatchers.Default)) }
 }
 
 val contactsModule = module {
