@@ -39,6 +39,9 @@ import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import org.koin.compose.koinInject
 import kotlinx.serialization.Serializable
+import org.crimsoncode2026.notifications.PushNotificationManager
+import org.crimsoncode2026.notifications.NotificationClickEvent
+import org.crimsoncode2026.notifications.NotificationClickState
 
 // Navigation destinations
 @Serializable
@@ -84,11 +87,32 @@ fun App() {
     // Shared state for zoom target event ID (persisted across navigation)
     var zoomTargetEventId by rememberSaveable { mutableStateOf<String?>(null) }
 
+    // Initialize PushNotificationManager
+    val pushNotificationManager: PushNotificationManager = koinInject()
+
     MaterialTheme(
         colorScheme = if (isSystemInDarkTheme()) darkColorScheme() else lightColorScheme()
     ) {
+        // Initialize PushNotificationManager and handle notification clicks
+        val navController: NavHostController = rememberNavController()
+
+        LaunchedEffect(Unit) {
+            // Initialize the push notification manager
+            pushNotificationManager.initialize()
+        }
+
+        LaunchedEffect(Unit) {
+            // Collect notification click events and navigate accordingly
+            NotificationClickState.notificationClickEvents.collect { event ->
+                zoomTargetEventId = event.eventId
+                navController.navigate(EventDeepLinkDestination(event.eventId)) {
+                    popUpTo(SessionInitDestination) { inclusive = true }
+                }
+            }
+        }
+
         Surface {
-            val navController: NavHostController = rememberNavController()
+            NavHost(navController = navController, startDestination = SessionInitDestination) {
 
             NavHost(navController = navController, startDestination = SessionInitDestination) {
                 // Session initialization - determines auth flow

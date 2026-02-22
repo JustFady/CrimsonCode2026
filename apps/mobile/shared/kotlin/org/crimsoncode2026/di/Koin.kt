@@ -38,6 +38,7 @@ import org.crimsoncode2026.location.permissions.LocationPermissionHandler
 import org.crimsoncode2026.location.LocationState
 import org.crimsoncode2026.notifications.permissions.NotificationPermissionHandler
 import org.crimsoncode2026.notifications.NotificationPresenter
+import org.crimsoncode2026.notifications.PushNotificationManager
 import org.crimsoncode2026.contacts.permissions.ContactsPermissionHandler
 import org.crimsoncode2026.contacts.DeviceContactsService
 import org.crimsoncode2026.domain.usecases.AppUserDetectionUseCase
@@ -85,6 +86,9 @@ val notificationsModule = module {
 
     // Notification Presenter - displays notifications with severity-based styling
     single { NotificationPresenter(CoroutineScope(SupervisorJob() + Dispatchers.Default)) }
+
+    // Push Notification Manager - handles notification display
+    single { PushNotificationManager() }
 }
 
 val contactsModule = module {
