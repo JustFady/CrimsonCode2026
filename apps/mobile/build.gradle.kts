@@ -15,7 +15,14 @@ plugins {
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.kotlinxSerialization)
-    alias(libs.plugins.googleServices)
+    alias(libs.plugins.googleServices) apply false
+}
+
+val googleServicesJson = rootProject.file("apps/mobile/androidApp/google-services.json")
+if (googleServicesJson.exists()) {
+    apply(plugin = "com.google.gms.google-services")
+} else {
+    logger.lifecycle("MVP build: google-services.json not found, skipping Google Services plugin.")
 }
 
 kotlin {
