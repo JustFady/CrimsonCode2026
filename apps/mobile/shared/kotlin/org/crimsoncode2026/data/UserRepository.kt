@@ -61,6 +61,15 @@ interface UserRepository {
     suspend fun updateLastActive(userId: String): Result<User>
 
     /**
+     * Update user device ID
+     * Used for one-device-per-account enforcement when user logs in from new device
+     * @param userId User ID
+     * @param deviceId New device ID
+     * @return Result with updated user or error
+     */
+    suspend fun updateDeviceId(userId: String, deviceId: String): Result<User>
+
+    /**
      * Deactivate user account
      * @param userId User ID
      * @return Result indicating success or error
@@ -182,6 +191,26 @@ class UserRepositoryImpl(
             .update(
                 mapOf(
                     "last_active_at" to now,
+                    "updated_at" to now
+                )
+            ) {
+                filter {
+                    eq("id", userId)
+                }
+            }
+            .decodeSingle<User>()
+
+        Result.success(result)
+    } catch (e: Exception) {
+        Result.failure(e)
+    }
+
+    override suspend fun updateDeviceId(userId: String, deviceId: String): Result<User> = try {
+        val now = System.currentTimeMillis()
+        val result = postgrest.from(TABLE)
+            .update(
+                mapOf(
+                    "device_id" to deviceId,
                     "updated_at" to now
                 )
             ) {
