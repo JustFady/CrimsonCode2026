@@ -40,6 +40,7 @@ import org.crimsoncode2026.domain.usecases.AppUserDetectionUseCase
 import org.crimsoncode2026.domain.usecases.ImportContactsUseCase
 import org.crimsoncode2026.screens.contacts.ContactsViewModel
 import org.crimsoncode2026.screens.privateevents.PrivateEventsViewModel
+import org.crimsoncode2026.screens.settings.SettingsViewModel
 import org.crimsoncode2026.domain.usecases.FcmTokenInitializationUseCase
 import org.crimsoncode2026.notifications.FcmTokenManager
 import org.crimsoncode2026.notifications.FcmTokenRepository
@@ -173,6 +174,21 @@ val authModule = module {
 }
 
 /**
+ * Koin module for user settings
+ * Provides SettingsViewModel for preference management
+ * Note: PreferencesStorage is provided by authModule
+ */
+val settingsModule = module {
+    // Settings ViewModel - state management for user preferences
+    factory { params ->
+        SettingsViewModel(
+            preferencesStorage = get(),
+            scope = params.get()
+        )
+    }
+}
+
+/**
  * Koin module for event management screens and ViewModels
  * Provides ViewModels for received events display and interaction
  */
@@ -198,6 +214,7 @@ fun initKoin() {
             notificationsModule,
             contactsModule,
             eventsModule,
+            settingsModule,
         )
     }
 
