@@ -1,12 +1,17 @@
 package org.crimsoncode2026.di
 
+import dev.icerock.moko.permissions.PermissionsController
 import org.crimsoncode2026.data.InMemoryMuseumStorage
+import org.crimsoncode2026.location.LocationRepository
 import org.crimsoncode2026.data.KtorMuseumApi
 import org.crimsoncode2026.data.MuseumApi
 import org.crimsoncode2026.data.MuseumRepository
 import org.crimsoncode2026.data.MuseumStorage
+import org.crimsoncode2026.location.permissions.LocationPermissionHandler
 import org.crimsoncode2026.screens.detail.DetailViewModel
 import org.crimsoncode2026.screens.list.ListViewModel
+import org.crimsoncode2026.location.LocationState
+import org.crimsoncode2026.location.IpGeolocationService
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.http.ContentType
@@ -41,11 +46,19 @@ val viewModelModule = module {
     factoryOf(::DetailViewModel)
 }
 
+val locationModule = module {
+    factory { params -> LocationPermissionHandler(get(PermissionsController)) }
+    single { IpGeolocationService(get()) }
+    single { LocationRepository(get(PermissionsController), get()) }
+    factory { params -> LocationState(get(), params.get()) }
+}
+
 fun initKoin() {
     startKoin {
         modules(
             dataModule,
             viewModelModule,
+            locationModule,
         )
     }
 }
