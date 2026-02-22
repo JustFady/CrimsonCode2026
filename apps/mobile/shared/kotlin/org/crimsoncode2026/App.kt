@@ -14,6 +14,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.navigation.NavHostController
+import androidx.navigation.navDeepLink
 import androidx.navigation.navOptions
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -66,6 +67,13 @@ object EventCreationWizardDestination
 
 @Serializable
 object EventListViewDestination
+
+/**
+ * Deep link destination for navigating to a specific event from push notifications.
+ * Handles crimsoncode://event/{eventId} URL scheme.
+ */
+@Serializable
+data class EventDeepLinkDestination(val eventId: String)
 
 /**
  * Main App composable
@@ -244,6 +252,23 @@ fun App() {
                             }
                         }
                     )
+                }
+
+                // Deep link handler for push notifications
+                // Handles crimsoncode://event/{eventId} URL scheme
+                composable<EventDeepLinkDestination>(
+                    deepLinks = listOf(
+                        navDeepLink(
+                            uriPattern = "crimsoncode://event/{eventId}"
+                        )
+                    )
+                ) { backStackEntry ->
+                    val eventId = backStackEntry.toRoute<EventDeepLinkDestination>().eventId
+                    // Set zoom target and navigate to main map
+                    zoomTargetEventId = eventId
+                    navController.navigate(MainDestination) {
+                        popUpTo(SessionInitDestination) { inclusive = true }
+                    }
                 }
             }
         }
