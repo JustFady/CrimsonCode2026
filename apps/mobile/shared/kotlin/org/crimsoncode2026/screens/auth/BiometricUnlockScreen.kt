@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -23,11 +22,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import dev.icerock.moko.biometry.BiometryAuthenticator
-import dev.icerock.moko.biometry.BiometryAuthenticatorReason
-import dev.icerock.moko.biometry.BiometryType
-import dev.icerock.moko.biometry.BiometryAuthResult
-import kotlinx.coroutines.launch
+import dev.icerock.moko.biometry.BiometryAuthenticatorFactory
 
 /**
  * Result of biometric authentication
@@ -53,10 +48,12 @@ fun BiometricUnlockScreen(
 ) {
     var isAuthenticating by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
-    val biometryAuthenticator = remember { BiometryAuthenticator() }
+    val biometryFactory = remember { BiometryAuthenticatorFactory() }
+    val biometryAuthenticator = remember { biometryFactory.createBiometryAuthenticator() }
 
     // Auto-trigger biometric prompt on screen load
     LaunchedEffect(Unit) {
+        isAuthenticating = true
         performBiometricAuth(biometryAuthenticator) { result ->
             when (result) {
                 is BiometricAuthResult.Success -> {
@@ -124,31 +121,26 @@ fun BiometricUnlockScreen(
 }
 
 /**
- * Perform biometric authentication
+ * Perform biometric authentication using moko-biometry suspend API
  */
-private fun performBiometricAuth(
-    authenticator: BiometryAuthenticator,
+private suspend fun performBiometricAuth(
+    authenticator: dev.icerock.moko.biometry.BiometryAuthenticator,
     onResult: (BiometricAuthResult) -> Unit
 ) {
-    authenticator.authenticate(
-        requestTitle = "Unlock Emergency Response",
-        requestReason = BiometryAuthenticatorReason("Authenticate to access the app")
-    ) { result ->
-        when (result) {
-            is BiometryAuthResult.Success -> {
-                onResult(BiometricAuthResult.Success)
-            }
-            is BiometryAuthResult.Failed -> {
-                onResult(BiometricAuthResult.Failed)
-            }
-            is BiometryAuthResult.Error -> {
-                onResult(BiometricAuthResult.Error(result.error.message ?: "Biometric error"))
-            }
-        is BiometryAuthResult.Cancelled -> {
-                    // User cancelled, treat as failed
-                    onResult(BiometricAuthResult.Failed)
-                }
+    try {
+        val isSuccess = authenticator.checkBiometryAuthentication(
+            requestTitle = "Unlock Emergency Response",
+            requestReason = "Authenticate to access the app",
+            failureButtonText = "Cancel",
+            allowDeviceCredentials = true
+        )
+        if (isSuccess) {
+            onResult(BiometricAuthResult.Success)
+        } else {
+            onResult(BiometricAuthResult.Failed)
         }
+    } catch (e: Exception) {
+        onResult(BiometricAuthResult.Error(e.message ?: "Biometric authentication error"))
     }
 }
 
