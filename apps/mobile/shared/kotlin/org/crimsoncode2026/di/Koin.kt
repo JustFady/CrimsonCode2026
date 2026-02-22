@@ -1,17 +1,25 @@
 package org.crimsoncode2026.di
 
 import dev.icerock.moko.permissions.PermissionsController
-import org.crimsoncode2026.data.InMemoryMuseumStorage
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import org.crimsoncode2026.data.EventRecipientRepository
+import org.crimsoncode2026.data.EventRecipientRepositoryImpl
+import org.crimsoncode2026.data.EventRepository
+import org.crimsoncode2026.data.EventRepositoryImpl
+import org.crimsoncode2026.data.RealtimeService
+import org.crimsoncode2026.data.RealtimeServiceImpl
+import org.crimsoncode2026.data.User
+import org.crimsoncode2026.data.UserContactRepository
+import org.crimsoncode2026.data.UserContactRepositoryImpl
+import org.crimsoncode2026.data.UserRepository
+import org.crimsoncode2026.data.UserRepositoryImpl
 import org.crimsoncode2026.location.LocationRepository
-import org.crimsoncode2026.data.KtorMuseumApi
-import org.crimsoncode2026.data.MuseumApi
-import org.crimsoncode2026.data.MuseumRepository
-import org.crimsoncode2026.data.MuseumStorage
 import org.crimsoncode2026.location.permissions.LocationPermissionHandler
-import org.crimsoncode2026.screens.detail.DetailViewModel
-import org.crimsoncode2026.screens.list.ListViewModel
 import org.crimsoncode2026.location.LocationState
 import org.crimsoncode2026.location.IpGeolocationService
+import org.crimsoncode2026.di.supabaseClientModule
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.http.ContentType
@@ -21,31 +29,6 @@ import org.koin.core.context.startKoin
 import org.koin.core.module.dsl.factoryOf
 import org.koin.dsl.module
 
-val dataModule = module {
-    single {
-        val json = Json { ignoreUnknownKeys = true }
-        HttpClient {
-            install(ContentNegotiation) {
-                // TODO Fix API so it serves application/json
-                json(json, contentType = ContentType.Any)
-            }
-        }
-    }
-
-    single<MuseumApi> { KtorMuseumApi(get()) }
-    single<MuseumStorage> { InMemoryMuseumStorage() }
-    single {
-        MuseumRepository(get(), get()).apply {
-            initialize()
-        }
-    }
-}
-
-val viewModelModule = module {
-    factoryOf(::ListViewModel)
-    factoryOf(::DetailViewModel)
-}
-
 val locationModule = module {
     factory { params -> LocationPermissionHandler(get(PermissionsController)) }
     single { IpGeolocationService(get()) }
@@ -53,11 +36,37 @@ val locationModule = module {
     factory { params -> LocationState(get(), params.get()) }
 }
 
+/**
+ * Koin module for Supabase data repositories
+ * Provides singleton instances of repositories and realtime service
+ */
+val supabaseDataModule = module {
+    // User Repository
+    single<UserRepository> { UserRepositoryImpl(get()) }
+
+    // User Contact Repository
+    single<UserContactRepository> { UserContactRepositoryImpl(get()) }
+
+    // Event Repository
+    single<EventRepository> { EventRepositoryImpl(get()) }
+
+    // Event Recipient Repository
+    single<EventRecipientRepository> { EventRecipientRepositoryImpl(get()) }
+
+    // Realtime Service
+    single<RealtimeService> {
+        RealtimeServiceImpl(
+            realtime = get(),
+            scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+        )
+    }
+}
+
 fun initKoin() {
     startKoin {
         modules(
-            dataModule,
-            viewModelModule,
+            supabaseClientModule,
+            supabaseDataModule,
             locationModule,
         )
     }

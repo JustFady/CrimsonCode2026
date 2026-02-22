@@ -1,0 +1,1 @@
+/home/ldeen/Documents/CrimsonCode2026/backend/migrations/20250221000002_create_user_contacts_table.sql
