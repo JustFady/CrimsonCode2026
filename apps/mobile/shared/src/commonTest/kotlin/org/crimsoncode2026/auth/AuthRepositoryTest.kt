@@ -1,8 +1,8 @@
 package org.crimsoncode2026.auth
 
-import io.github.jan-tennert.supabase.auth.OtpType
-import io.github.jan-tennert.supabase.auth.user.UserInfo
-import io.github.jan-tennert.supabase.auth.user.UserSession
+import io.github.jan.supabase.auth.OtpType
+import io.github.jan.supabase.auth.user.UserInfo
+import io.github.jan.supabase.auth.user.UserSession
 import kotlinx.coroutines.test.runTest
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest

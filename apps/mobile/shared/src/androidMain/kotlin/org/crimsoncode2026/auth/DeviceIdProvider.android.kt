@@ -34,7 +34,7 @@ actual object DeviceIdProvider {
     /**
      * Get current device ID, generating one if needed
      */
-    actual override suspend fun getDeviceId(): String = withContext(Dispatchers.Default) {
+    actual suspend fun getDeviceId(): String = withContext(Dispatchers.Default) {
         val secureStorage = requireStorage()
 
         // Check if device ID already stored
@@ -49,7 +49,7 @@ actual object DeviceIdProvider {
     /**
      * Regenerate device ID for new device binding
      */
-    actual override suspend fun regenerateDeviceId(): String = withContext(Dispatchers.Default) {
+    actual suspend fun regenerateDeviceId(): String = withContext(Dispatchers.Default) {
         val secureStorage = requireStorage()
         val newDeviceId = generateDeviceId()
         secureStorage.putString(DEVICE_ID_KEY_ANDROID, newDeviceId)
@@ -59,7 +59,7 @@ actual object DeviceIdProvider {
     /**
      * Clear stored device ID
      */
-    actual override suspend fun clearDeviceId() = withContext(Dispatchers.Default) {
+    actual suspend fun clearDeviceId() = withContext(Dispatchers.Default) {
         requireStorage().remove(DEVICE_ID_KEY_ANDROID)
     }
 

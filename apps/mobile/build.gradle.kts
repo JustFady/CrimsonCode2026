@@ -31,6 +31,45 @@ kotlin {
     }
 
     sourceSets {
+        commonMain {
+            kotlin.srcDir("shared/kotlin")
+            kotlin.srcDir("shared/domain")
+            kotlin.exclude("**/*Test.kt")
+            kotlin.exclude("**/OptimizedRealtimeService.kt")
+            // shared/kotlin source root excludes (package-style paths)
+            kotlin.exclude("org/crimsoncode2026/auth/**")
+            kotlin.exclude("org/crimsoncode2026/contacts/**")
+            kotlin.exclude("org/crimsoncode2026/data/**")
+            kotlin.exclude("org/crimsoncode2026/di/**")
+            kotlin.exclude("org/crimsoncode2026/domain/**")
+            kotlin.exclude("org/crimsoncode2026/location/**")
+            kotlin.exclude("org/crimsoncode2026/network/**")
+            kotlin.exclude("org/crimsoncode2026/notifications/**")
+            kotlin.exclude("org/crimsoncode2026/screens/**")
+            kotlin.exclude("org/crimsoncode2026/storage/**")
+            kotlin.exclude("org/crimsoncode2026/compose/**")
+            kotlin.exclude("org/crimsoncode2026/utils/**")
+            // shared/domain source root excludes (root-relative paths)
+            kotlin.exclude("usecases/**")
+            kotlin.exclude("UserSessionManager.kt")
+        }
+        androidMain {
+            kotlin.srcDir("shared/src/androidMain/kotlin")
+            kotlin.exclude("org/crimsoncode2026/auth/**")
+            kotlin.exclude("org/crimsoncode2026/network/**")
+            kotlin.exclude("org/crimsoncode2026/notifications/**")
+            kotlin.exclude("org/crimsoncode2026/storage/**")
+        }
+        iosMain {
+            kotlin.srcDir("shared/src/iosMain/kotlin")
+            kotlin.exclude("org/crimsoncode2026/auth/**")
+            kotlin.exclude("org/crimsoncode2026/network/**")
+            kotlin.exclude("org/crimsoncode2026/notifications/**")
+            kotlin.exclude("org/crimsoncode2026/storage/**")
+        }
+        commonTest {
+            kotlin.srcDir("shared/src/commonTest/kotlin")
+        }
         androidMain.dependencies {
             implementation(libs.androidx.compose.ui.tooling.preview)
             implementation(libs.androidx.activity.compose)
@@ -41,7 +80,7 @@ kotlin {
             implementation(libs.ktor.client.darwin)
         }
         commonTest.dependencies {
-            implementation(libs.kotlin.test)
+            implementation(kotlin("test"))
         }
         commonMain.dependencies {
             implementation(compose.runtime)
@@ -90,12 +129,21 @@ kotlin {
 
 android {
     namespace = "org.crimsoncode2026"
-    compileSdk = 35
+    compileSdk = 36
+
+    sourceSets["main"].apply {
+        manifest.srcFile("androidApp/AndroidManifest.xml")
+        java.srcDirs("androidApp/kotlin")
+        res.srcDirs("androidApp/res")
+    }
+    sourceSets["androidTest"].apply {
+        java.srcDirs("androidApp/src/androidTest/kotlin")
+    }
 
     defaultConfig {
         applicationId = "org.crimsoncode2026"
         minSdk = 24
-        targetSdk = 35
+        targetSdk = 36
         versionCode = 1
         versionName = "1.0"
     }

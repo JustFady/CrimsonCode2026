@@ -40,37 +40,37 @@ class FcmTokenManagerTest {
 
     class MockNotifier(
         private val token: String? = "mock-fcm-token"
-    ) : io.github.mirzemehdi.kmpnotifier.KmpNotifier {
+    ) : com.mmk.kmpnotifier.KmpNotifier {
         override suspend fun getToken(): String? = token
 
         val tokenFlowValue = token
         val tokenFlow = flowOf(
-            io.github.mirzemehdi.kmpnotifier.NotificationToken(
+            com.mmk.kmpnotifier.NotificationToken(
                 token = tokenFlowValue
             )
         )
 
-        override val tokenFlow: Flow<io.github.mirzemehdi.kmpnotifier.NotificationToken>
+        override val tokenFlow: Flow<com.mmk.kmpnotifier.NotificationToken>
             get() = tokenFlow
     }
 
-    class NullTokenNotifier : io.github.mirzemehdi.kmpnotifier.KmpNotifier {
+    class NullTokenNotifier : com.mmk.kmpnotifier.KmpNotifier {
         override suspend fun getToken(): String? = null
 
-        override val tokenFlow: Flow<io.github.mirzemehdi.kmpnotifier.NotificationToken>
+        override val tokenFlow: Flow<com.mmk.kmpnotifier.NotificationToken>
             get() = flowOf(
-                io.github.mirzemehdi.kmpnotifier.NotificationToken(
+                com.mmk.kmpnotifier.NotificationToken(
                     token = null
                 )
             )
     }
 
-    class ThrowingNotifier : io.github.mirzemehdi.kmpnotifier.KmpNotifier {
+    class ThrowingNotifier : com.mmk.kmpnotifier.KmpNotifier {
         override suspend fun getToken(): String? {
             throw RuntimeException("FCM error")
         }
 
-        override val tokenFlow: Flow<io.github.mirzemehdi.kmpnotifier.NotificationToken>
+        override val tokenFlow: Flow<com.mmk.kmpnotifier.NotificationToken>
             get() = flowOf()
     }
 

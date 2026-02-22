@@ -1,9 +1,9 @@
 package org.crimsoncode2026.di
 
-import io.github.jan-tennert.supabase.SupabaseClient
-import io.github.jan-tennert.supabase.auth.Auth
-import io.github.jan-tennert.supabase.postgrest.Postgrest
-import io.github.jan-tennert.supabase.realtime.Realtime
+import io.github.jan.supabase.SupabaseClient
+import io.github.jan.supabase.auth.Auth
+import io.github.jan.supabase.postgrest.Postgrest
+import io.github.jan.supabase.realtime.Realtime
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.http.ContentType

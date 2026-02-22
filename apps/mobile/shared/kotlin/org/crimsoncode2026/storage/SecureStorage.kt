@@ -6,7 +6,7 @@ package org.crimsoncode2026.storage
  * Platform-specific implementation providing encrypted key-value storage.
  * Used for sensitive data like device IDs, tokens, etc.
  */
-expect interface SecureStorage {
+interface SecureStorage {
 
     /**
      * Get string value for key
@@ -29,3 +29,9 @@ expect interface SecureStorage {
      */
     suspend fun clear()
 }
+
+/**
+ * Factory function for creating SecureStorage
+ * Platform-specific implementation provided by expect/actual
+ */
+expect fun createSecureStorage(): SecureStorage

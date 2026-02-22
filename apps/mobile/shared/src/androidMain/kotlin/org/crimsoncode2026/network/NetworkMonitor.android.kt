@@ -2,18 +2,6 @@ package org.crimsoncode2026.network
 
 import android.content.Context
 import android.net.ConnectivityManager
-import org.crimsoncode2026.auth.ContextProvider
-
-/**
- * Factory function for Android platform
- */
-fun createNetworkMonitor(scope: CoroutineScope): NetworkMonitor {
-    val context = ContextProvider.getApplicationContext()
-    return NetworkMonitorImpl(context, scope)
-}
-
-/**
- * Android implementation of NetworkMonitor
 import android.net.Network
 import android.net.NetworkCapabilities
 import android.net.NetworkRequest
@@ -24,6 +12,15 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import org.crimsoncode2026.auth.ContextProvider
+
+/**
+ * Factory function for Android platform
+ */
+actual fun createNetworkMonitor(scope: CoroutineScope): NetworkMonitor {
+    val context = ContextProvider.getContext()
+    return NetworkMonitorImpl(context, scope)
+}
 
 /**
  * Android implementation of NetworkMonitor

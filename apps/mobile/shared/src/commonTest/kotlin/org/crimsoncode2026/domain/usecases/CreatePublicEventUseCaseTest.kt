@@ -47,11 +47,11 @@ class CreatePublicEventUseCaseTest {
     class MockUserSessionManager(
         private val userId: String? = "test-user-id"
     ) : org.crimsoncode2026.domain.UserSessionManager {
-        override fun getCurrentAuthUser(): io.github.jan-tennert.supabase.auth.User? {
+        override fun getCurrentAuthUser(): io.github.jan.supabase.auth.User? {
             return userId?.let { MockSupabaseUser(it) }
         }
 
-        override fun authStateFlow(): kotlinx.coroutines.flow.Flow<io.github.jan-tennert.supabase.auth.User?> {
+        override fun authStateFlow(): kotlinx.coroutines.flow.Flow<io.github.jan.supabase.auth.User?> {
             return kotlinx.coroutines.flow.flowOf(userId?.let { MockSupabaseUser(it) })
         }
 
@@ -98,7 +98,7 @@ class CreatePublicEventUseCaseTest {
         override suspend fun signOut() {}
     }
 
-    class MockSupabaseUser(override val id: String) : io.github.jan-tennert.supabase.auth.User
+    class MockSupabaseUser(override val id: String) : io.github.jan.supabase.auth.User
 
     // ==================== Success Cases ====================
 

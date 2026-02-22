@@ -1,6 +1,6 @@
 package org.crimsoncode2026.data
 
-import io.github.jan-tennert.supabase.postgrest.Postgrest
+import io.github.jan.supabase.postgrest.Postgrest
 
 /**
  * Repository interface for UserContact data operations

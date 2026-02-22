@@ -1,6 +1,6 @@
 package org.crimsoncode2026.notifications
 
-import io.github.mirzemehdi.kmpnotifier.NotifierManager
+import com.mmk.kmpnotifier.NotifierManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
