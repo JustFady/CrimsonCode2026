@@ -7,6 +7,7 @@
 Cross-platform emergency response mobile application for USA users. Single device per account, phone number OTP authentication, 50-mile public alert radius, 48-hour event expiration.
 
 **Target Platforms:** Android, iOS (Kotlin Multiplatform / Jetpack Compose Multiplatform)
+**License:** MIT
 **Target Region:** USA only
 **Target Language:** English only
 **Account Model:** One device per phone number
@@ -24,8 +25,8 @@ Cross-platform emergency response mobile application for USA users. Single devic
 | Authentication | Supabase Auth (Phone OTP) |
 | Session Management | KSafe / KDataNest encrypted storage + moko-biometry |
 | Real-time | Supabase Realtime (supabase-kt) |
-| Maps | Google Maps (Android) + MapLibre (iOS) via expect/actual |
-| Push Notifications | Firebase Cloud Messaging (Android) + APNs via Firebase (iOS) |
+| Maps | MapLibre Compose (cross-platform) |
+| Push Notifications | KMPNotifier with Firebase FCM (cross-platform) |
 | Geolocation | moko-geo |
 | Contacts | Kontacts |
 | Storage | Supabase Storage (for future attachments) |
@@ -43,9 +44,9 @@ Cross-platform emergency response mobile application for USA users. Single devic
 │  │  KMP Android  │  │   KMP iOS    ││
 │  │                │  │              ││
 │  │  - Compose UI  │  │- Compose UI ││
-│  │  - Google Maps │  │- MapLibre   ││
+│  │  - MapLibre    │  │- MapLibre   ││
 │  │  - KSafe       │  │- KSafe      ││
-│  │  - FCM         │  │- APNs/Firebase│
+│  │  - KMPNotifier     │  │- KMPNotifier│
 │  │  - moko-geo    │  │- moko-geo   ││
 │  │  - Kontacts    │  │- Kontacts   ││
 │  │  - moko-biometry│ │- moko-biometry│
@@ -105,6 +106,7 @@ Cross-platform emergency response mobile application for USA users. Single devic
 - Primary Key: UUID
 - Fields:
   - Phone number (unique, indexed)
+  - DisplayName: string (shown to contacts for private events)
   - Device ID (unique, indexed)
   - FCM token (indexed)
   - Platform: enum (ANDROID, IOS)
@@ -153,9 +155,8 @@ Cross-platform emergency response mobile application for USA users. Single devic
   - Event ID (foreign key)
   - User ID (foreign key)
   - NotifiedAt: timestamp
-  - AcknowledgedAt: timestamp (optional)
   - ClearedAt: timestamp (optional, when user clears from their list)
-- Purpose: Track private recipients and interaction status
+- Purpose: Track private recipients and delivery status
 
 ---
 
@@ -186,11 +187,12 @@ Users (1) ----< (N) EventRecipients ----> (N) Events
 3. Supabase Auth sends 6-digit OTP via SMS
 4. User enters OTP code
 5. Server validates code
-6. Device ID generated from app/device context
-7. Server creates or updates user record with phone number + device ID
-8. Access token and refresh token generated
-9. Tokens stored in encrypted key-value storage (KSafe / KDataNest)
-10. User navigates to contact selection screen
+6. User prompted to enter display name
+7. Device ID generated from app/device context
+8. Server creates or updates user record with phone number + device ID + displayName
+9. Access token and refresh token generated
+10. Tokens stored in encrypted key-value storage (KSafe / KDataNest)
+11. User navigates to contact selection screen
 
 **Subsequent App Opens:**
 1. App checks for existing session in encrypted storage (KSafe / KDataNest)
@@ -322,16 +324,22 @@ Users (1) ----< (N) EventRecipients ----> (N) Events
 
 ## Push Notification Design
 
+### Notification Library
+
+**KMPNotifier with Firebase FCM:**
+- Single KMP library handling both Android and iOS
+- Firebase bridges FCM to APNs for iOS
+- Shared API reduces platform-specific code
+- Built-in deep linking, permissions
+
 ### Notification Types
 
 **Crisis Alert:**
-- Sound: Custom emergency sound
 - Vibration: Aggressive pattern
 - Priority: High
 - Actions: "View on Map"
 
 **Alert (Warning):**
-- Sound: Default notification sound
 - Vibration: Standard pattern
 - Priority: Normal
 - Actions: "View on Map"
@@ -345,32 +353,29 @@ Users (1) ----< (N) EventRecipients ----> (N) Events
 - Data: Event ID, coordinates, severity, deep link URL
 
 **Deep Linking:**
-- Custom URL scheme: `emergency://event/{eventId}`
+- Custom URL scheme: `crimsoncode://event/{eventId}`
 - Opens app, navigates to event on map
 
 ### Notification Channels (Android)
 
 **Emergency Alerts:**
 - Importance: High
-- Sound: Custom emergency sound
 - Bypass DND: Not guaranteed (platform-managed)
 
 **Alerts:**
 - Importance: Default
-- Sound: Default notification sound
 
 ---
 
 ## Maps and Visualization Design
 
-### Map Providers
+### Map Provider
 
-**Android:** Google Maps Platform
-- Online maps with Google Maps SDK
-- Requires Google Maps API key
-
-**iOS:** MapLibre
-- Online maps with MapLibre SDK
+**MapLibre Compose (Cross-Platform):**
+- Open-source map SDK with unified API for Android and iOS
+- Online maps using OpenStreetMap tiles (no API key required)
+- Supports markers, user location, camera controls
+- Active community, mature implementation
 
 ### Marker System
 
@@ -465,7 +470,7 @@ Users (1) ----< (N) EventRecipients ----> (N) Events
 **Main Screen:**
 - Map view centered on user location
 - Floating action button: "+" to create new event
-- Event list toggle: Top-right button showing count of unacknowledged events
+- Event list toggle: Top-right button showing count of pending events
 - User location marker with accuracy indicator
 
 ### Event Creation Wizard
@@ -514,7 +519,7 @@ Users (1) ----< (N) EventRecipients ----> (N) Events
 **Event Information Panel:**
 - Bottom sheet panel slides up on marker click
 - Contains: severity, category, description, location, time
-- If private: shows which contact created the event
+- If private: shows creator's display name from Users table (updates if sender changes name)
 - If public: anonymous (no creator information)
 - "Clear from list" button to remove from user's event list
 
@@ -532,11 +537,6 @@ Users (1) ----< (N) EventRecipients ----> (N) Events
 - Event expires 48 hours after creation (automatic database cleanup)
 - User can manually clear event from their list
 
-**Acknowledged State:**
-- Set when recipient views event or taps notification
-- Event remains on map and in list
-- Visual indicator shows event has been acknowledged
-
 **Cleared State:**
 - Private events: User clears event from list, ClearedAt stored in EventRecipients
 - Public events: User can dismiss in current session only (no server-side clear record)
@@ -546,40 +546,48 @@ Users (1) ----< (N) EventRecipients ----> (N) Events
 - Server removes from Events table and EventRecipients table
 - No longer visible to any user
 
-**No Resolution Feature:**
-- Events are never resolved or marked as completed
-- Events only expire or are cleared by individual users
-- No status change from "active" to any other state
+**Note:** Events are never resolved or marked as completed. Events only expire or are cleared by individual users.
 
 ---
 
 ## User Settings & Preferences
 
+### Settings Storage: Local vs Database
+
+**Stored in Database (Users table):**
+- Phone number
+- Display name (used for private event identification)
+- Device ID
+- FCM token
+- Platform and device model
+- Account status
+
+**Stored Locally on Device:**
+- Public alert opt-out preference
+- Notification preferences (master toggle, crisis toggle, warning toggle, vibration)
+- Location accuracy mode preference
+- Biometric settings
+
 ### Notification Settings
 
 **Push Notifications:**
-- Master toggle: Enable/disable all notifications
-- Crisis alerts: Toggle
-- Warning alerts: Toggle
-- Public alerts: Toggle (user can opt-out of receiving all public alerts)
-- Private alerts: Toggle
+- Master toggle: Enable/disable all notifications (local)
+- Crisis alerts: Toggle (local)
+- Warning alerts: Toggle (local)
+- Public alerts: Toggle - user can opt-out of receiving all public alerts (local)
+- Private alerts: Toggle (local)
 
 **Notification Preferences:**
-- Sound selection per severity
-- Vibration toggle
+- Vibration toggle (local)
 
 ### Location Settings
 
 **Location Accuracy:**
-- High precision mode toggle
-- Default: Balanced mode
+- High precision mode toggle (local)
+- Default: Balanced mode (local)
 
 **Background Location:**
 - Not included in MVP
-
-**Privacy:**
-- Participate in public alerts toggle (this is the opt-out for receiving public alerts)
-- Default: Enabled
 
 ### Contact Settings
 
@@ -590,6 +598,12 @@ Users (1) ----< (N) EventRecipients ----> (N) Events
 - This is the single list that receives private alerts
 
 ### Account Settings
+
+**Display Name:**
+- Edit display name (stored in database)
+- Shown to contacts for private events
+- Required at registration
+- Historical events update to reflect new name when changed
 
 **Authentication:**
 - Logout button
@@ -681,7 +695,7 @@ Users (1) ----< (N) EventRecipients ----> (N) Events
 - Supabase Pro plan
 - Supabase Auth (Phone OTP)
 - Firebase FCM (free)
-- Google Maps Platform API
+- MapLibre Compose (free, OpenStreetMap tiles)
 
 **Release Process:**
 - Automated builds
@@ -700,9 +714,8 @@ Users (1) ----< (N) EventRecipients ----> (N) Events
 | Supabase Pro | $25 |
 | Supabase Auth SMS | Variable usage |
 | Firebase FCM | $0 |
-| Google Maps Platform | Variable usage (with free tier) |
-| MapLibre | $0 |
-| **Total** | **$25 + SMS usage + Maps usage** |
+| MapLibre | $0 (OpenStreetMap tiles) |
+| **Total** | **$25 + SMS usage** |
 
 ### Projected Annual
 
@@ -750,7 +763,7 @@ Users (1) ----< (N) EventRecipients ----> (N) Events
 ### Stage 3: Maps & Location (Weeks 7-8)
 
 **Deliverables:**
-- Map integration via expect/actual (Google Maps Android, MapLibre iOS)
+- Map integration via MapLibre Compose (cross-platform)
 - moko-geo integration with permission handling
 - User location marker with accuracy visualization
 - Map interaction patterns
@@ -826,9 +839,8 @@ Users (1) ----< (N) EventRecipients ----> (N) Events
 - Event details bottom panel
 - Event list view with filtering
 - Map navigation to event
-- Event acknowledgment flow
 - Clear from list functionality
-- Private events show creator info, public events anonymous
+- Private events show creator's display name, public events anonymous
 
 **Success Criteria:**
 - Events display with appropriate styling
@@ -922,8 +934,9 @@ Users (1) ----< (N) EventRecipients ----> (N) Events
 **Broadcast Radius:** 50 miles for public alerts
 **Event Resolution:** Not supported (events only cleared by users or expire)
 **Public Events:** Anonymous (no creator information shown)
-**Private Events:** Shows which contact created the alert
+**Private Events:** Shows creator's display name to recipients
 **Contacts:** Single list for private alert delivery
 **Offline Support:** Not included in MVP
 **Description Limit:** 500 characters
-**Opt-out:** Users can opt-out of public alerts
+**Opt-out:** Users can opt-out of public alerts (local device setting)
+**License:** MIT

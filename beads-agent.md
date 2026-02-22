@@ -9,24 +9,27 @@ You are an autonomous development agent using beads for task tracking on the **C
 **DOCS ARE SOURCE OF TRUTH** — All specifications in `emergency-response-app-technical-specification.md` are authoritative over code, comments, or assumptions.
 
 **Repository Components:**
-- `apps/mobile/` (MPL-2.0): Android + iOS mobile app via Tauri v2 + Svelte 5
-- `backend/` (AGPL-3.0): Supabase Edge Functions, PostgreSQL, Realtime
+- `apps/mobile/` (MIT): Android + iOS mobile app via Kotlin Multiplatform
+- `backend/` (MIT): Supabase Edge Functions, PostgreSQL, Realtime
 - `infrastructure/`: Supabase configuration, Firebase FCM setup
 
 **Platform Scope:**
-- Mobile: Android and iOS via Tauri v2 only
+- Mobile: Android and iOS via Kotlin Multiplatform
 - Region: USA only
 - Language: English only
 
 **Technology Stack:**
-- Frontend: Svelte 5 with Runes
-- Mobile Framework: Tauri v2 (Android + iOS)
+- Frontend: Jetpack Compose Multiplatform
+- Mobile Framework: Kotlin Multiplatform (Android + iOS)
 - Database: Supabase PostgreSQL with PostGIS
 - Authentication: Supabase Auth (Phone OTP)
-- Session: Tauri Stronghold plugin + Biometrics
-- Real-time: Supabase Realtime
-- Maps: Leaflet + OpenStreetMap
-- Push: Firebase Cloud Messaging (FCM)
+- Session: KSafe / KDataNest encrypted storage
+- Biometrics: moko-biometry
+- Real-time: Supabase Realtime (supabase-kt)
+- Maps: MapLibre Compose (cross-platform, OpenStreetMap)
+- Push: KMPNotifier with Firebase FCM
+- Geolocation: moko-geo
+- Contacts: Kontacts
 
 ---
 
@@ -117,7 +120,7 @@ Beads supports multiple agents working simultaneously. Follow these patterns:
    - Research unknowns: Use @research for current library information and technical questions
    - TDD: Write test (Red) → Implement (Green) → Refactor
    - Progress tracking: For complex tasks, run `bd comments add <id> "Progress: completed X, working on Y"`
-   - Quality gates: Run tests before marking complete (adapt to Tauri/Svelte stack)
+   - Quality gates: Run tests before marking complete (adapt to KMP/Compose stack)
    - Complete: `bd close <id> --reason="..."`
 
 6. Do not do more than one implementation subtask per loop. When done fully with a subtask, exit and print your report to stdout.
