@@ -31,6 +31,7 @@ import org.crimsoncode2026.domain.usecases.MarkEventOpenedUseCase
 import org.crimsoncode2026.domain.usecases.SubscribeToPrivateEventsUseCase
 import org.crimsoncode2026.domain.usecases.CreatePrivateEventWithRecipientsUseCase
 import org.crimsoncode2026.domain.usecases.CreatePublicEventUseCase
+import org.crimsoncode2026.domain.usecases.CreateEventUseCase
 import org.crimsoncode2026.location.LocationRepository
 import org.crimsoncode2026.location.permissions.LocationPermissionHandler
 import org.crimsoncode2026.location.LocationState
@@ -173,6 +174,7 @@ val authModule = module {
     single { SubscribeToPrivateEventsUseCase(get(), get()) }
     single { CreatePrivateEventWithRecipientsUseCase(get(), get(), get(), get(), get()) }
     single { CreatePublicEventUseCase(get(), get()) }
+    single { CreateEventUseCase(get(), get()) }
 }
 
 /**
