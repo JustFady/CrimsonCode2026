@@ -32,6 +32,7 @@ import org.crimsoncode2026.domain.usecases.SubscribeToPrivateEventsUseCase
 import org.crimsoncode2026.domain.usecases.CreatePrivateEventWithRecipientsUseCase
 import org.crimsoncode2026.domain.usecases.CreatePublicEventUseCase
 import org.crimsoncode2026.domain.usecases.CreateEventUseCase
+import org.crimsoncode2026.domain.usecases.QueryPublicEventsUseCase
 import org.crimsoncode2026.location.LocationRepository
 import org.crimsoncode2026.location.permissions.LocationPermissionHandler
 import org.crimsoncode2026.location.LocationState
@@ -215,6 +216,9 @@ val eventsModule = module {
             scope = params.get()
         )
     }
+
+    // Query Public Events Use Case - fetches public events within map bounds
+    single { QueryPublicEventsUseCase(get(), get()) }
 }
 
 fun initKoin() {
