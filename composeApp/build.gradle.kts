@@ -65,6 +65,9 @@ kotlin {
             implementation(libs.moko.geo.compose)
             implementation(libs.moko.permissions)
             implementation(libs.moko.permissions.location)
+
+            implementation(libs.moko.biometry)
+            implementation(libs.moko.biometry.compose)
         }
     }
 }
