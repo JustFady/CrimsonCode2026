@@ -69,6 +69,8 @@ data class EventReviewData(
  * @param onCancel Callback when user cancels the event creation
  * @param isLoading Whether submission is in progress
  * @param errorMessage Optional error message to display
+ * @param onRetry Optional callback for retry action
+ * @param isRetrying Whether a retry is in progress
  */
 @Composable
 fun ReviewSubmitScreen(
@@ -76,7 +78,9 @@ fun ReviewSubmitScreen(
     onSubmit: () -> Unit,
     onCancel: () -> Unit = {},
     isLoading: Boolean = false,
-    errorMessage: String? = null
+    errorMessage: String? = null,
+    onRetry: (() -> Unit)? = null,
+    isRetrying: Boolean = false
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
@@ -138,7 +142,11 @@ fun ReviewSubmitScreen(
 
                 // Error message if present
                 if (errorMessage != null) {
-                    ErrorCard(message = errorMessage)
+                    ErrorCard(
+                        message = errorMessage,
+                        onRetry = onRetry,
+                        isRetrying = isRetrying
+                    )
                 }
             }
 
@@ -323,7 +331,11 @@ private fun ReviewDescriptionCard(description: String) {
  * Error card for displaying submission errors
  */
 @Composable
-private fun ErrorCard(message: String) {
+private fun ErrorCard(
+    message: String,
+    onRetry: (() -> Unit)? = null,
+    isRetrying: Boolean = false
+) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
@@ -335,24 +347,77 @@ private fun ErrorCard(message: String) {
             MaterialTheme.colorScheme.error
         )
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = Icons.Default.Cancel,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.error,
-                modifier = Modifier.size(24.dp)
-            )
-            Spacer(modifier = Modifier.width(12.dp))
-            Text(
-                text = message,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onErrorContainer
-            )
+        if (onRetry != null) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Cancel,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text(
+                        text = message,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onErrorContainer
+                    )
+                }
+                Button(
+                    onClick = onRetry,
+                    enabled = !isRetrying,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = MaterialTheme.colorScheme.onErrorContainer
+                    )
+                ) {
+                    if (isRetrying) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.onErrorContainer
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Retrying...", style = MaterialTheme.typography.labelSmall)
+                    } else {
+                        Icon(
+                            imageVector = Icons.Default.Refresh,
+                            contentDescription = "Retry",
+                            modifier = Modifier.size(16.dp),
+                            tint = MaterialTheme.colorScheme.onErrorContainer
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Retry", style = MaterialTheme.typography.labelSmall)
+                    }
+                }
+            }
+        } else {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Cancel,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.size(24.dp)
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                Text(
+                    text = message,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onErrorContainer
+                )
+            }
         }
     }
 }

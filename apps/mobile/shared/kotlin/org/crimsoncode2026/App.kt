@@ -45,6 +45,7 @@ import kotlinx.serialization.Serializable
 import org.crimsoncode2026.notifications.PushNotificationManager
 import org.crimsoncode2026.notifications.NotificationClickEvent
 import org.crimsoncode2026.notifications.NotificationClickState
+import org.crimsoncode2026.network.NetworkMonitor
 
 // Navigation destinations
 @Serializable
@@ -93,6 +94,9 @@ fun App() {
     // Initialize PushNotificationManager
     val pushNotificationManager: PushNotificationManager = koinInject()
 
+    // Initialize NetworkMonitor
+    val networkMonitor: NetworkMonitor = koinInject()
+
     MaterialTheme(
         colorScheme = if (isSystemInDarkTheme()) darkColorScheme() else lightColorScheme()
     ) {
@@ -102,6 +106,9 @@ fun App() {
         LaunchedEffect(Unit) {
             // Initialize the push notification manager
             pushNotificationManager.initialize()
+
+            // Start network monitoring
+            networkMonitor.startMonitoring()
         }
 
         LaunchedEffect(Unit) {

@@ -57,11 +57,29 @@ import org.crimsoncode2026.location.IpGeolocationService
 import org.crimsoncode2026.storage.SecureStorage
 import org.crimsoncode2026.storage.PreferencesStorage
 import org.crimsoncode2026.di.supabaseClientModule
+import org.crimsoncode2026.network.NetworkMonitor
+import org.crimsoncode2026.network.createNetworkMonitor
+import org.crimsoncode2026.network.RetryHandler
+import org.crimsoncode2026.data.RetryAwareEventRepository
+import org.crimsoncode2026.data.RetryAwareEventRecipientRepository
 import org.koin.core.component.getKoin
 import org.koin.core.context.startKoin
 import org.koin.core.module.dsl.factoryOf
 import io.ktor.client.HttpClient
 import org.koin.dsl.module
+
+/**
+ * Koin module for network monitoring and retry handling
+ */
+val networkModule = module {
+    // Network Monitor - provides connectivity status
+    single<NetworkMonitor> {
+        createNetworkMonitor(CoroutineScope(SupervisorJob() + Dispatchers.Default))
+    }
+
+    // Retry Handler - provides retry logic for network operations
+    single { RetryHandler() }
+}
 
 val locationModule = module {
     factory { params -> LocationPermissionHandler(get(PermissionsController)) }
@@ -124,6 +142,7 @@ val contactsModule = module {
 /**
  * Koin module for Supabase data repositories
  * Provides singleton instances of repositories and realtime service
+ * Uses retry-aware wrappers for event and event recipient repositories
  */
 val supabaseDataModule = module {
     // User Repository
@@ -132,11 +151,21 @@ val supabaseDataModule = module {
     // User Contact Repository
     single<UserContactRepository> { UserContactRepositoryImpl(get()) }
 
-    // Event Repository
-    single<EventRepository> { EventRepositoryImpl(get()) }
+    // Event Repository - wrapped with retry handler
+    single<EventRepository> {
+        RetryAwareEventRepository(
+            delegate = EventRepositoryImpl(get()),
+            retryHandler = get()
+        )
+    }
 
-    // Event Recipient Repository
-    single<EventRecipientRepository> { EventRecipientRepositoryImpl(get()) }
+    // Event Recipient Repository - wrapped with retry handler
+    single<EventRecipientRepository> {
+        RetryAwareEventRecipientRepository(
+            delegate = EventRecipientRepositoryImpl(get()),
+            retryHandler = get()
+        )
+    }
 
     // Realtime Service
     single<RealtimeService> {
@@ -227,6 +256,7 @@ val eventsModule = module {
     factory { params ->
         EventCreationViewModel(
             createEventUseCase = get(),
+            networkMonitor = get(),
             scope = params.get()
         )
     }
@@ -253,6 +283,7 @@ fun initKoin() {
             supabaseClientModule,
             supabaseDataModule,
             authModule,
+            networkModule,
             locationModule,
             notificationsModule,
             contactsModule,

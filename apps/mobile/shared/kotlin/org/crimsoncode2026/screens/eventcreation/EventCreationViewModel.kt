@@ -11,6 +11,7 @@ import org.crimsoncode2026.domain.usecases.CreateEventParams
 import org.crimsoncode2026.domain.usecases.CreateEventResult
 import org.crimsoncode2026.domain.usecases.CreateEventUseCase
 import org.crimsoncode2026.location.LocationData
+import org.crimsoncode2026.network.NetworkMonitor
 
 /**
  * Wizard step for event creation
@@ -71,7 +72,9 @@ data class EventCreationState(
     val selectedContactIds: List<String> = emptyList(),
     val isSubmitting: Boolean = false,
     val submitResult: CreateEventResult? = null,
-    val canProceed: Boolean = false
+    val canProceed: Boolean = false,
+    val isRetrying: Boolean = false,
+    val retryCount: Int = 0
 ) {
     val isReviewStep: Boolean
         get() = currentStep == WizardStep.REVIEW
@@ -109,6 +112,7 @@ data class EventCreationState(
  *
  * Manages wizard state for event creation flow.
  * Handles navigation between steps and submission using CreateEventUseCase.
+ * Includes network monitoring and retry handling for failed submissions.
  *
  * Spec requirements:
  * - Wizard with 6 sequential steps
@@ -117,19 +121,29 @@ data class EventCreationState(
  * - Description max 500 characters
  * - Public events: broadcastType=PUBLIC, isAnonymous=true
  * - Private events: broadcastType=PRIVATE, requires selected contacts
+ * - Stage 9: Retry handling for event creation and acknowledgments
+ * - Stage 9: Network status monitoring
+ * - Stage 9: Error-state UI for failed network operations
  *
  * @param createEventUseCase Use case for creating events
+ * @param networkMonitor Network connectivity monitor
  * @param scope Coroutine scope for ViewModel
  */
 class EventCreationViewModel(
     private val createEventUseCase: CreateEventUseCase,
+    private val networkMonitor: NetworkMonitor,
     private val scope: CoroutineScope
 ) {
     private val _state = MutableStateFlow(EventCreationState())
     val state: StateFlow<EventCreationState> = _state.asStateFlow()
 
+    // Network status for error state display
+    val networkStatus = networkMonitor.networkStatus
+
     init {
         updateCanProceed()
+        // Start network monitoring
+        networkMonitor.startMonitoring()
     }
 
     /**
@@ -301,6 +315,31 @@ class EventCreationViewModel(
      * Clear submit result
      */
     fun clearSubmitResult() {
-        _state.value = _state.value.copy(submitResult = null)
+        _state.value = _state.value.copy(submitResult = null, isRetrying = false)
+    }
+
+    /**
+     * Retry failed event submission
+     * Reuses the same event data from the current state
+     */
+    fun retrySubmission() {
+        val currentState = _state.value
+
+        // Clear previous error and set retrying state
+        _state.value = currentState.copy(
+            submitResult = null,
+            isRetrying = true,
+            retryCount = currentState.retryCount + 1
+        )
+
+        // Re-submit with same parameters
+        submitEvent()
+    }
+
+    /**
+     * Cleanup when ViewModel is no longer needed
+     */
+    fun cleanup() {
+        networkMonitor.stopMonitoring()
     }
 }

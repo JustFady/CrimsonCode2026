@@ -14,6 +14,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -23,6 +24,8 @@ import org.crimsoncode2026.data.Category
 import org.crimsoncode2026.domain.usecases.CreateEventResult
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
+import org.crimsoncode2026.compose.NetworkStatusBanner
+import org.crimsoncode2026.network.NetworkInfo
 
 /**
  * Event Creation Wizard - Orchestrates all 6 wizard screens for event creation
@@ -151,6 +154,8 @@ fun EventCreationWizard(onDismiss: () -> Unit) {
             )
 
             WizardStep.REVIEW -> {
+                val networkInfo by viewModel.networkStatus.collectAsState()
+
                 val reviewData = EventReviewData(
                     category = state.selectedCategory!!,
                     severity = state.selectedSeverity,
@@ -167,16 +172,29 @@ fun EventCreationWizard(onDismiss: () -> Unit) {
                     description = state.description
                 )
 
-                ReviewSubmitScreen(
-                    reviewData = reviewData,
-                    onSubmit = { viewModel.submitEvent() },
-                    onCancel = {
-                        viewModel.reset()
-                        onDismiss()
-                    },
-                    isLoading = state.isSubmitting,
-                    errorMessage = (state.submitResult as? CreateEventResult.Error)?.message
-                )
+                Box(modifier = Modifier.fillMaxSize()) {
+                    NetworkStatusBanner(
+                        networkInfo = networkInfo,
+                        isRetrying = state.isRetrying,
+                        onRetry = if (state.submitResult is CreateEventResult.Error) {
+                            { viewModel.retrySubmission() }
+                        } else null
+                    )
+                    ReviewSubmitScreen(
+                        reviewData = reviewData,
+                        onSubmit = { viewModel.submitEvent() },
+                        onCancel = {
+                            viewModel.reset()
+                            onDismiss()
+                        },
+                        isLoading = state.isSubmitting,
+                        errorMessage = (state.submitResult as? CreateEventResult.Error)?.message,
+                        onRetry = if (state.submitResult is CreateEventResult.Error) {
+                            { viewModel.retrySubmission() }
+                        } else null,
+                        isRetrying = state.isRetrying
+                    )
+                }
             }
         }
     }
@@ -194,5 +212,12 @@ fun EventCreationWizard(onDismiss: () -> Unit) {
                 }
             }
         )
+    }
+
+    // Cleanup network monitoring when wizard is dismissed
+    DisposableEffect(Unit) {
+        onDispose {
+            viewModel.cleanup()
+        }
     }
 }
