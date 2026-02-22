@@ -234,6 +234,107 @@ class MainMapViewModel(
     }
 
     /**
+     * Start realtime subscription for private events
+     */
+    private fun startRealtimeSubscription() {
+        subscribeToPrivateEventsUseCase(
+            listener = object : SubscribeToPrivateEventsUseCase.PrivateEventListener {
+                override fun onIncomingEvent(event: IncomingPrivateEvent) {
+                    handleRealtimeEvent(event)
+                }
+
+                override fun onEventDeleted(payload: RealtimeEventPayload) {
+                    // Remove event from loadedEvents if it exists
+                    _state.value = _state.value.copy(
+                        loadedEvents = _state.value.loadedEvents.filterNot { it.event.id == payload.eventId },
+                        selectedEvent = if (_state.value.selectedEvent?.event?.id == payload.eventId) {
+                            null
+                        } else {
+                            _state.value.selectedEvent
+                        }
+                    )
+                }
+
+                override fun onError(error: Throwable) {
+                    _state.value = _state.value.copy(
+                        error = "Realtime error: ${error.message}"
+                    )
+                }
+
+                override fun onStatusChanged(status: org.crimsoncode2026.data.RealtimeChannelStatus) {
+                    // Optionally track connection status in state
+                    // For MVP, we can just log this
+                }
+            }
+        )
+    }
+
+    /**
+     * Handle incoming realtime event
+     *
+     * @param incomingEvent The incoming private event
+     */
+    private fun handleRealtimeEvent(incomingEvent: IncomingPrivateEvent) {
+        val payload = incomingEvent.payload
+
+        // Create Event from payload
+        val event = Event(
+            id = payload.eventId,
+            creatorId = payload.creatorId ?: "",
+            severity = payload.severity,
+            category = payload.category,
+            lat = payload.lat,
+            lon = payload.lon,
+            locationOverride = null,
+            broadcastType = payload.broadcastType,
+            description = payload.description,
+            isAnonymous = payload.isAnonymous,
+            createdAt = payload.createdAt,
+            expiresAt = Event.calculateExpiration(payload.createdAt),
+            deletedAt = null
+        )
+
+        // For private events, creator info is available in the payload
+        val creator = if (payload.creatorId != null && payload.creatorDisplayName != null) {
+            User(
+                id = payload.creatorId,
+                phoneNumber = "", // Not in realtime payload
+                displayName = payload.creatorDisplayName,
+                deviceId = "",
+                platform = org.crimsoncode2026.data.Platform.ANDROID,
+                isActive = true,
+                fcmToken = "",
+                createdAt = 0,
+                updatedAt = 0,
+                lastActiveAt = 0
+            )
+        } else {
+            null
+        }
+
+        // Create MapEvent
+        val mapEvent = MapEvent(event, creator)
+
+        // Add to loaded events if not already present (for updates)
+        val currentEvents = _state.value.loadedEvents
+        val existingIndex = currentEvents.indexOfFirst { it.event.id == event.id }
+
+        if (existingIndex >= 0) {
+            // Update existing event
+            _state.value = _state.value.copy(
+                loadedEvents = currentEvents.toMutableList().apply {
+                    this[existingIndex] = mapEvent
+                }
+            )
+        } else {
+            // Add new event
+            _state.value = _state.value.copy(
+                loadedEvents = currentEvents + mapEvent
+            )
+        }
+    }
+
+    /**
      * Get current user location
      */
     fun getCurrentLocation(): LocationData? {

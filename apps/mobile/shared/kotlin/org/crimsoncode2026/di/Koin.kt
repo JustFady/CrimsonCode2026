@@ -223,6 +223,7 @@ val eventsModule = module {
         MainMapViewModel(
             queryPublicEventsUseCase = get(),
             getReceivedEventsUseCase = get(),
+            subscribeToPrivateEventsUseCase = get(),
             locationState = get { parametersOf(CoroutineScope(SupervisorJob() + Dispatchers.Default)) },
             scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
         )
