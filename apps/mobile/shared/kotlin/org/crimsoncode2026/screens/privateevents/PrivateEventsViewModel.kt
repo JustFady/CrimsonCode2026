@@ -13,7 +13,6 @@ import org.crimsoncode2026.domain.usecases.GetReceivedEventsUseCase
 import org.crimsoncode2026.domain.usecases.MarkEventOpenedResult
 import org.crimsoncode2026.domain.usecases.MarkEventOpenedUseCase
 import org.crimsoncode2026.domain.usecases.SubscribeToPrivateEventsUseCase
-import org.crimsoncode2026.domain.usecases.SubscribeToPrivateEventsResult
 import org.crimsoncode2026.domain.usecases.IncomingPrivateEvent
 
 /**
@@ -128,10 +127,10 @@ class PrivateEventsViewModel(
                     _connectionStatus.value = status
                 }
             }) {
-                is SubscribeToPrivateEventsResult.Success -> {
+                is SubscribeToPrivateEventsUseCase.Result.Success -> {
                     _isSubscribed.value = true
                 }
-                is SubscribeToPrivateEventsResult.Error -> {
+                is SubscribeToPrivateEventsUseCase.Result.Error -> {
                     _isSubscribed.value = false
                 }
             }
