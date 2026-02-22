@@ -39,6 +39,7 @@ import org.crimsoncode2026.location.LocationState
 import org.crimsoncode2026.notifications.permissions.NotificationPermissionHandler
 import org.crimsoncode2026.notifications.NotificationPresenter
 import org.crimsoncode2026.notifications.PushNotificationManager
+import org.crimsoncode2026.notifications.SendPushNotificationUseCase
 import org.crimsoncode2026.contacts.permissions.ContactsPermissionHandler
 import org.crimsoncode2026.contacts.DeviceContactsService
 import org.crimsoncode2026.domain.usecases.AppUserDetectionUseCase
@@ -59,6 +60,7 @@ import org.crimsoncode2026.di.supabaseClientModule
 import org.koin.core.component.getKoin
 import org.koin.core.context.startKoin
 import org.koin.core.module.dsl.factoryOf
+import io.ktor.client.HttpClient
 import org.koin.dsl.module
 
 val locationModule = module {
@@ -89,6 +91,9 @@ val notificationsModule = module {
 
     // Push Notification Manager - handles notification display
     single { PushNotificationManager() }
+
+    // Send Push Notification Use Case - calls edge function to trigger FCM
+    single { SendPushNotificationUseCase(HttpClient()) }
 }
 
 val contactsModule = module {

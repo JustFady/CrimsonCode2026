@@ -9,6 +9,8 @@ import org.crimsoncode2026.data.UserContact
 import org.crimsoncode2026.data.UserContactRepository
 import org.crimsoncode2026.data.UserRepository
 import org.crimsoncode2026.domain.UserSessionManager
+import org.crimsoncode2026.notifications.SendPushNotificationUseCase
+import org.crimsoncode2026.notifications.SendPushNotificationResult
 
 /**
  * Result of creating private event with recipients
@@ -38,7 +40,8 @@ class CreatePrivateEventWithRecipientsUseCase(
     private val eventRecipientRepository: EventRecipientRepository,
     private val userContactRepository: UserContactRepository,
     private val userRepository: UserRepository,
-    private val userSessionManager: UserSessionManager
+    private val userSessionManager: UserSessionManager,
+    private val sendPushNotificationUseCase: SendPushNotificationUseCase
 ) {
 
     /**
@@ -143,6 +146,27 @@ class CreatePrivateEventWithRecipientsUseCase(
 
         // Step 8: Batch insert recipient records
         val recipientsResult = eventRecipientRepository.createRecipients(recipients)
+
+        // Step 9: Trigger push notifications for private events
+        if (recipients is kotlin.Result.Success) {
+            when (val pushResult = sendPushNotificationUseCase(
+                eventId = createdEvent.id,
+                severity = createdEvent.severity,
+                category = createdEvent.category,
+                description = createdEvent.description,
+                lat = createdEvent.lat,
+                lon = createdEvent.lon
+            )) {
+                is SendPushNotificationResult.Success -> {
+                    // Push notifications sent successfully
+                    // notifications_sent count can be logged if needed
+                }
+                is SendPushNotificationResult.Error -> {
+                    // Log error but don't fail the entire operation
+                    // Push notification failure is non-critical for event creation
+                }
+            }
+        }
 
         return when (recipientsResult) {
             is Result.Success -> {
