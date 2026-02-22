@@ -15,17 +15,24 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Add
 
 /**
- * Main app screen with event map and settings access
+ * Main app screen with event map, settings, and FAB button for creating events
  *
- * This is where the event map, list, and other main features will be implemented
- * Settings button in top app bar navigates to SettingsDestination
+ * Features:
+ * - Event map view (to be implemented)
+ * - Settings button in top app bar
+ * - FAB button to launch event creation wizard
+ *
+ * @param onNavigateToSettings Callback when user navigates to settings
+ * @param onCreateEvent Callback when user taps FAB to create event
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(
-    onNavigateToSettings: () -> Unit = {}
+    onNavigateToSettings: () -> Unit = {},
+    onCreateEvent: () -> Unit = {}
 ) {
     Scaffold(
         topBar = {
@@ -38,6 +45,13 @@ fun MainScreen(
                 },
                 colors = TopAppBarDefaults.topAppBarColors()
             )
+        },
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = onCreateEvent
+            ) {
+                Icon(Icons.Default.Add, contentDescription = "Create Event")
+            }
         }
     ) { paddingValues ->
         Box(

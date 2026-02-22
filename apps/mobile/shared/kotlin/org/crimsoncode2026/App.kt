@@ -25,6 +25,7 @@ import org.crimsoncode2026.screens.auth.OtpVerificationScreen
 import org.crimsoncode2026.screens.auth.PhoneEntryScreen
 import org.crimsoncode2026.screens.main.MainScreen
 import org.crimsoncode2026.screens.settings.SettingsScreen
+import org.crimsoncode2026.screens.eventcreation.EventCreationWizard
 import org.crimsoncode2026.domain.usecases.SessionInitUseCase
 import org.crimsoncode2026.domain.usecases.SessionInitResult
 import org.koin.core.component.KoinComponent
@@ -52,6 +53,9 @@ object MainDestination
 
 @Serializable
 object SettingsDestination
+
+@Serializable
+object EventCreationWizardDestination
 
 /**
  * Main App composable
@@ -157,6 +161,18 @@ fun App() {
                     MainScreen(
                         onNavigateToSettings = {
                             navController.navigate(SettingsDestination)
+                        },
+                        onCreateEvent = {
+                            navController.navigate(EventCreationWizardDestination)
+                        }
+                    )
+                }
+
+                // Event creation wizard
+                composable<EventCreationWizardDestination> {
+                    EventCreationWizard(
+                        onDismiss = {
+                            navController.popBackStack()
                         }
                     )
                 }
