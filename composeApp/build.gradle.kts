@@ -71,6 +71,8 @@ kotlin {
 
             implementation(libs.ksafe)
             implementation(libs.ksafe.compose)
+
+            implementation(libs.kontacts)
         }
     }
 }
