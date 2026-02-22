@@ -17,6 +17,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AppRegistration
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
@@ -35,6 +36,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -51,10 +53,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
+import org.crimsoncode2026.compose.ManualContactEntryDialog
 import org.crimsoncode2026.contacts.permissions.ContactsPermissionHandler
 import org.crimsoncode2026.contacts.permissions.ContactsPermissionState
 import org.crimsoncode2026.data.UserContact
 import org.crimsoncode2026.data.UserContactRepository
+import org.crimsoncode2026.data.UserRepository
 import org.crimsoncode2026.domain.usecases.ImportContactsResult
 import org.crimsoncode2026.domain.usecases.ImportContactsUseCase
 import org.crimsoncode2026.domain.UserSessionManager
@@ -84,6 +88,7 @@ fun ContactSelectionScreen(
     val contactsPermissionHandler: ContactsPermissionHandler by inject()
     val importContactsUseCase: ImportContactsUseCase by inject()
     val userContactRepository: UserContactRepository by inject()
+    val userRepository: UserRepository by inject()
     val userSessionManager: UserSessionManager by inject()
 
     var searchQuery by remember { mutableStateOf(TextFieldValue()) }
@@ -92,6 +97,7 @@ fun ContactSelectionScreen(
     var selectedContactIds by remember { mutableStateMapOf<String, Boolean>() }
     var isLoading by remember { mutableStateOf(true) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    var showManualEntryDialog by remember { mutableStateOf(false) }
 
     val permissionState by contactsPermissionHandler.contactsPermissionState().collectAsState(
         initial = ContactsPermissionState.Denied
@@ -158,6 +164,49 @@ fun ContactSelectionScreen(
     val sortedContacts = filteredContacts.sortedWith(compareBy<UserContact> { !it.hasApp }
         .thenBy { it.displayName.lowercase() })
 
+    fun handleManualContactEntry(phoneNumber: String, displayName: String) {
+        coroutineScope.launch {
+            val userId = userSessionManager.getCurrentUserId() ?: return@launch
+
+            // Check if contact already exists
+            val existingContact = userContactRepository.getContactByPhoneNumber(userId, phoneNumber)
+                .getOrNull()
+
+            if (existingContact != null) {
+                // Contact already exists, just select it
+                selectedContactIds[existingContact.id] = true
+                errorMessage = "Contact already in your list"
+            } else {
+                // Check if contact has the app
+                val appUser = userRepository.getUserByPhoneNumber(phoneNumber).getOrNull()
+                val now = System.currentTimeMillis()
+
+                // Create new contact
+                val newContact = UserContact(
+                    id = java.util.UUID.randomUUID().toString(),
+                    userId = userId,
+                    contactPhoneNumber = phoneNumber,
+                    displayName = displayName,
+                    hasApp = appUser != null,
+                    contactUserId = appUser?.id,
+                    createdAt = now,
+                    updatedAt = now
+                )
+
+                val result = userContactRepository.createContact(newContact)
+                if (result.isSuccess) {
+                    val createdContact = result.getOrNull()
+                    if (createdContact != null) {
+                        contacts = contacts + createdContact
+                        selectedContactIds[createdContact.id] = true
+                    }
+                } else {
+                    errorMessage = "Failed to add contact: ${result.exceptionOrNull()?.message}"
+                }
+            }
+        }
+    }
+
     Box(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {
             // Header
@@ -168,6 +217,7 @@ fun ContactSelectionScreen(
                 onAppUsersToggleChange = { showOnlyAppUsers = it },
                 selectedCount = selectedContactIds.size,
                 onBack = onBack,
+                onAddManualContact = { showManualEntryDialog = true },
                 onSave = { onContactsSaved(sortedContacts.filter { selectedContactIds[it.id] == true }) }
             )
 
@@ -196,7 +246,8 @@ fun ContactSelectionScreen(
                             coroutineScope.launch {
                                 contactsPermissionHandler.requestContactsPermission()
                             }
-                        }
+                        },
+                        onAddManualContact = { showManualEntryDialog = true }
                     )
                 }
                 sortedContacts.isEmpty() -> {
@@ -223,6 +274,17 @@ fun ContactSelectionScreen(
                 }
             }
         }
+    }
+
+    // Manual contact entry dialog
+    if (showManualEntryDialog) {
+        ManualContactEntryDialog(
+            onDismiss = { showManualEntryDialog = false },
+            onContactAdded = { phoneNumber, displayName ->
+                handleManualContactEntry(phoneNumber, displayName)
+                showManualEntryDialog = false
+            }
+        )
     }
 }
 
@@ -391,6 +453,7 @@ private fun ContactSelectionHeader(
     onAppUsersToggleChange: (Boolean) -> Unit,
     selectedCount: Int,
     onBack: () -> Unit,
+    onAddManualContact: () -> Unit,
     onSave: (List<UserContact>) -> Unit
 ) {
     Column(
@@ -452,7 +515,23 @@ private fun ContactSelectionHeader(
             )
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Add contact manually button
+        TextButton(
+            onClick = onAddManualContact,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Icon(
+                imageVector = Icons.Default.Add,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text("Add Contact Manually")
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
 
         Button(
             onClick = { onSave(emptyList()) },
@@ -501,7 +580,8 @@ private fun ErrorView(
  */
 @Composable
 private fun PermissionDeniedView(
-    onRequestPermission: () -> Unit
+    onRequestPermission: () -> Unit,
+    onAddManualContact: () -> Unit
 ) {
     Column(
         modifier = Modifier.fillMaxSize(),
@@ -528,6 +608,10 @@ private fun PermissionDeniedView(
         Spacer(modifier = Modifier.height(24.dp))
         Button(onClick = onRequestPermission) {
             Text("Grant Permission")
+        }
+        Spacer(modifier = Modifier.height(12.dp))
+        TextButton(onClick = onAddManualContact) {
+            Text("Add Contact Manually")
         }
     }
 }
