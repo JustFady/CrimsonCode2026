@@ -123,8 +123,6 @@ fun App() {
 
         Surface {
             NavHost(navController = navController, startDestination = SessionInitDestination) {
-
-            NavHost(navController = navController, startDestination = SessionInitDestination) {
                 // Session initialization - determines auth flow
                 composable<SessionInitDestination> {
                     SessionInitScreen(
