@@ -14,6 +14,32 @@ Cross-platform emergency response mobile application for USA users. Single devic
 
 ---
 
+## Repository Structure
+
+```
+├── apps/
+│   └── mobile/              # Kotlin Multiplatform mobile app
+│       ├── androidApp/        # Android-specific code and configuration
+│       ├── iosApp/           # iOS-specific code and configuration
+│       └── shared/           # Common code shared across platforms
+│           ├── compose/        # Shared UI with Compose Multiplatform
+│           ├── data/           # Data layer, repositories
+│           ├── domain/         # Business logic, use cases
+│           └── di/            # Dependency injection
+├── backend/                  # Supabase Edge Functions
+│   ├── migrations/           # SQL database migrations
+│   ├── functions/            # Edge functions
+│   └── config/              # Supabase configuration
+├── infrastructure/           # Infrastructure as code
+│   ├── supabase/            # Supabase project setup
+│   └── firebase/             # Firebase FCM configuration
+└── docs/                    # Project documentation
+    ├── emergency-response-app-technical-specification.md
+    └── dbSchema.md
+```
+
+---
+
 ## Technology Stack
 
 | Layer | Technology |
@@ -105,57 +131,56 @@ Cross-platform emergency response mobile application for USA users. Single devic
 ### Users Table
 - Primary Key: UUID
 - Fields:
-  - Phone number (unique, indexed)
-  - DisplayName: string (shown to contacts for private events)
-  - Device ID (unique, indexed)
-  - FCM token (indexed)
-  - Platform: enum (ANDROID, IOS)
-  - DeviceModel: string
-  - isActive: boolean
-  - createdAt: timestamp
-  - lastActiveAt: timestamp
+  - phone_number (unique, indexed)
+  - display_name: string (shown to contacts for private events)
+  - device_id (unique, indexed)
+  - device_model: string
+  - fcm_token (indexed)
+  - platform: enum (ANDROID, IOS)
+  - is_active: boolean
+  - created_at: timestamp
+  - last_active_at: timestamp
 - Constraint: One user per phone number
 
 ### UserContacts Table
 - Primary Key: UUID
 - Fields:
-  - User ID (foreign key)
-  - Contact phone number (indexed)
-  - Display name
-  - hasApp: boolean
-  - AddedAt: timestamp
+  - user_id (foreign key)
+  - contact_phone_number (indexed)
+  - display_name: string
+  - has_app: boolean
+  - added_at: timestamp
 - Constraint: Unique combination of user and contact phone number
 - Purpose: The list of private contacts for alert delivery
 
 ### Events Table
 - Primary Key: UUID
 - Fields:
-  - User ID (foreign key) - Creator of event
-  - Severity: enum (ALERT, CRISIS)
-  - Category: enum (MEDICAL, FIRE, WEATHER, CRIME, NATURAL_DISASTER, INFRASTRUCTURE, SEARCH_RESCUE, TRAFFIC, OTHER)
-  - Latitude: float
-  - Longitude: float
-  - LocationOverride: string (optional, for manual location entry)
-  - BroadcastType: enum (PUBLIC, PRIVATE)
-  - Description: string (max 500 characters)
-  - IsAnonymous: boolean (true for public events, false for private)
-  - ExpiresAt: timestamp (createdAt + 48 hours)
-  - CreatedAt: timestamp
+  - creator_id (foreign key) - Creator of event
+  - severity: enum (ALERT, CRISIS)
+  - category: enum (MEDICAL, FIRE, WEATHER, CRIME, NATURAL_DISASTER, INFRASTRUCTURE, SEARCH_RESCUE, TRAFFIC, OTHER)
+  - lat: float
+  - lon: float
+  - location_override: string (optional, for manual location entry)
+  - broadcast_type: enum (PUBLIC, PRIVATE)
+  - description: string (max 500 characters)
+  - is_anonymous: boolean (true for public events, false for private)
+  - expires_at: timestamp (created_at + 48 hours)
+  - created_at: timestamp
 - Indexes:
-  - User ID
-  - Location (PostGIS for radius queries)
-  - Severity
-  - BroadcastType
-  - ExpiresAt
-  - CreatedAt
+  - creator_id
+  - lat, lon (for radius queries)
+  - severity
+  - broadcast_type
+  - expires_at
+  - created_at
 
 ### EventRecipients Table
-- Primary Key: Composite (eventId, userId)
+- Primary Key: Composite (event_id, user_id)
 - Fields:
-  - Event ID (foreign key)
-  - User ID (foreign key)
-  - NotifiedAt: timestamp
-  - ClearedAt: timestamp (optional, when user clears from their list)
+  - event_id (foreign key)
+  - user_id (foreign key)
+  - notified_at: timestamp
 - Purpose: Track private recipients and delivery status
 
 ---
@@ -286,7 +311,7 @@ Users (1) ----< (N) EventRecipients ----> (N) Events
 - One-way notifications only
 
 **Public Event Delivery (MVP):**
-- Public events are fetched by location query (PostGIS) on app open, map move, and manual refresh
+- Public events are fetched by location query (simple lat/lon) on app open, map move, and manual refresh
 - No precomputed public-recipient rows
 - No public push notification fanout in MVP
 
@@ -295,7 +320,7 @@ Users (1) ----< (N) EventRecipients ----> (N) Events
 **Event Creation:**
 1. User creates event with location, severity, category, broadcast type
 2. Server validates event data
-3. Event written to database with ExpiresAt set to 48 hours from creation
+3. Event written to database with expires_at set to 48 hours from creation
 4. Server routes based on broadcast type
 
 **Private Broadcast:**
@@ -312,7 +337,7 @@ Users (1) ----< (N) EventRecipients ----> (N) Events
 4. Respect user public-alert opt-out in query filters
 
 **Public Event Anonymity:**
-- User ID is stored in Events table for tracking and moderation
+- creator_id is stored in Events table for tracking and moderation
 - Public broadcasts do not include creator's phone number or any identifying information
 - Recipients see anonymous public event (no creator information)
 
@@ -350,7 +375,7 @@ Users (1) ----< (N) EventRecipients ----> (N) Events
 - Title: Severity + Category (e.g., "CRISIS - Medical")
 - Body: Brief description
 - Icon: Severity-appropriate icon
-- Data: Event ID, coordinates, severity, deep link URL
+- Data: event_id, coordinates, severity, deep link URL
 
 **Deep Linking:**
 - Custom URL scheme: `crimsoncode://event/{eventId}`
@@ -415,11 +440,11 @@ Users (1) ----< (N) EventRecipients ----> (N) Events
 1. Device contacts scanned for phone numbers
 2. Contacts normalized to E.164 format
 3. Contacts stored only in current user's UserContacts rows
-4. `hasApp` flag refreshed by matching against Users table
+4. `has_app` flag refreshed by matching against Users table
 
 **App Detection:**
 1. Phone numbers checked against Users table
-2. Contacts with matching phone number marked hasApp = true
+2. Contacts with matching phone number marked has_app = true
 3. Visual distinction: Badge or icon for app users
 
 **Selection Interface:**
@@ -470,7 +495,7 @@ Users (1) ----< (N) EventRecipients ----> (N) Events
 **Main Screen:**
 - Map view centered on user location
 - Floating action button: "+" to create new event
-- Event list toggle: Top-right button showing count of pending events
+- Event list toggle: Top-right button showing count of notified events
 - User location marker with accuracy indicator
 
 ### Event Creation Wizard
@@ -521,13 +546,13 @@ Users (1) ----< (N) EventRecipients ----> (N) Events
 - Contains: severity, category, description, location, time
 - If private: shows creator's display name from Users table (updates if sender changes name)
 - If public: anonymous (no creator information)
-- "Clear from list" button to remove from user's event list
+- "Clear from list" button to remove from user's event list (uses local device cache to hide event, no database update)
 
 **Event List View:**
 - Accessed via top-right button on map
 - Shows all private events user has received and nearby public events
 - Tapping event zooms map to location
-- "Clear all" button to remove all events from list
+- "Clear all" button to remove all events from list (uses local device cache to hide events, no database update)
 
 ### Event Lifecycle
 
@@ -535,18 +560,18 @@ Users (1) ----< (N) EventRecipients ----> (N) Events
 - Default state for new events
 - Marker displayed on map
 - Event expires 48 hours after creation (automatic database cleanup)
-- User can manually clear event from their list
+- User can manually clear event from their list (uses local device cache to hide event, no database update)
 
 **Cleared State:**
-- Private events: User clears event from list, ClearedAt stored in EventRecipients
-- Public events: User can dismiss in current session only (no server-side clear record)
+- User clears event from their notified list (uses local device cache to hide event, no database update)
+- Cleared_at in event_recipients is NOT used - events are hidden locally only
 
 **Expired State:**
 - Automatic after 48 hours from creation
 - Server removes from Events table and EventRecipients table
 - No longer visible to any user
 
-**Note:** Events are never resolved or marked as completed. Events only expire or are cleared by individual users.
+**Note:** Events are never resolved or marked as completed. Events only expire or are hidden locally by individual users.
 
 ---
 
@@ -628,8 +653,8 @@ Users (1) ----< (N) EventRecipients ----> (N) Events
 
 **Database Indexing:**
 - Composite indexes for common queries
-- PostGIS geospatial indexes for location queries
-- Index on ExpiresAt for automatic cleanup job
+- Indexes on lat/lon columns for radius queries
+- Index on expires_at for automatic cleanup job
 
 **Query Optimization:**
 - Prepared statements for repeated queries
@@ -816,7 +841,7 @@ Users (1) ----< (N) EventRecipients ----> (N) Events
 ### Stage 6: Push Notifications (Weeks 13-14)
 
 **Deliverables:**
-- Firebase Cloud Messaging integration via expect/actual pattern
+- KMPNotifier integration with Firebase FCM (cross-platform)
 - Device token registration
 - Push notification payload construction
 - Severity-based notification styling
@@ -839,13 +864,13 @@ Users (1) ----< (N) EventRecipients ----> (N) Events
 - Event details bottom panel
 - Event list view with filtering
 - Map navigation to event
-- Clear from list functionality
+- Clear from list functionality (local device cache to hide events, no database update)
 - Private events show creator's display name, public events anonymous
 
 **Success Criteria:**
 - Events display with appropriate styling
 - Users can view details and navigate to location
-- Users can clear events from their list
+- Users can clear events from their list (using local device cache, no database update)
 
 ---
 
@@ -932,7 +957,7 @@ Users (1) ----< (N) EventRecipients ----> (N) Events
 **Account Model:** One device per phone number
 **Event Expiration:** 48 hours automatic
 **Broadcast Radius:** 50 miles for public alerts
-**Event Resolution:** Not supported (events only cleared by users or expire)
+**Event Resolution:** Not supported (events only hidden locally by users or expire)
 **Public Events:** Anonymous (no creator information shown)
 **Private Events:** Shows creator's display name to recipients
 **Contacts:** Single list for private alert delivery
