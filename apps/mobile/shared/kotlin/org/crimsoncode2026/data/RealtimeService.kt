@@ -1,16 +1,17 @@
 package org.crimsoncode2026.data
 
-import io.github.jan-tennert.supabase.SupabaseClient
-import io.github.jan-tennert.supabase.realtime.Realtime
-import io.github.jan-tennert.supabase.realtime.RealtimeChannel
-import io.github.jan-tennert.supabase.realtime.RealtimeMessage
-import io.github.jan-tennert.supabase.realtime.channel
+import io.github.jan.supabase.SupabaseClient
+import io.github.jan.supabase.realtime.Realtime
+import io.github.jan.supabase.realtime.RealtimeChannel
+import io.github.jan.supabase.realtime.RealtimeMessage
+import io.github.jan.supabase.realtime.channel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive

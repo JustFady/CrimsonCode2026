@@ -3,36 +3,20 @@ package org.crimsoncode2026.compose
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
-import maplibre.compose.CameraPosition
-import maplibre.compose.MapLibreMap
-import maplibre.compose.rememberCameraPositionState
-import maplibre.compose.rememberMapLibreStyle
+import org.maplibre.compose.camera.CameraPosition as MlCameraPosition
+import org.maplibre.compose.camera.rememberCameraState
+import org.maplibre.compose.map.MaplibreMap
+import org.maplibre.compose.style.BaseStyle
+import org.maplibre.spatialk.geojson.Position
+import kotlin.math.pow
 
 /**
- * OpenStreetMap map view using MapLibre Compose.
+ * Lightweight wrapper around MapLibre Compose adapted to the currently installed
+ * `org.maplibre.compose` API.
  *
- * Features:
- * - OpenStreetMap tiles (no API key required)
- * - Configurable camera position
- * - Map gestures enabled (zoom, pan, rotate)
- * - Optional content slot for markers and other map overlays
- * - Optional target location for programmatically centering map
- *
- * @param modifier Modifier for map view
- * @param initialZoom Initial zoom level (default: 10.0)
- * @param initialLatitude Initial center latitude (default: 39.8283 - approximate USA center)
- * @param initialLongitude Initial center longitude (default: -98.5795 - approximate USA center)
- * @param onMapReady Callback when map is fully loaded and ready for interaction
- * @param onCameraChanged Callback when camera position changes (optional)
- * @param targetLocation Optional target location to center map on (lat, lon)
- * @param targetZoom Optional zoom level when centering on target location
- * @param content Optional composable content to display on map (e.g., markers, layers)
+ * We keep the app's previous signature so other screens can be restored incrementally.
  */
 @Composable
 fun MapView(
@@ -46,80 +30,89 @@ fun MapView(
     targetZoom: Double? = null,
     content: @Composable () -> Unit = {}
 ) {
-    var cameraPositionState = rememberCameraPositionState(
-        initialPosition = CameraPosition(
-            center = maplibre.compose.LatLng(
-                latitude = initialLatitude,
-                longitude = initialLongitude
-            ),
-            zoom = initialZoom,
-            pitch = 0.0,
-            bearing = 0.0
+    val baseStyle = remember {
+        BaseStyle.Json(
+            """
+            {
+              "version": 8,
+              "name": "CrimsonCode OSM Raster",
+              "sources": {
+                "osm": {
+                  "type": "raster",
+                  "tiles": [
+                    "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+                  ],
+                  "tileSize": 256,
+                  "attribution": "© OpenStreetMap contributors"
+                }
+              },
+              "layers": [
+                {
+                  "id": "osm-raster",
+                  "type": "raster",
+                  "source": "osm",
+                  "minzoom": 0,
+                  "maxzoom": 19
+                }
+              ]
+            }
+            """.trimIndent()
+        )
+    }
+
+    val cameraState = rememberCameraState(
+        firstPosition = MlCameraPosition(
+            target = Position(longitude = initialLongitude, latitude = initialLatitude),
+            zoom = initialZoom
         )
     )
 
-    // Center map on target location when it changes
-    LaunchedEffect(targetLocation) {
+    LaunchedEffect(targetLocation, targetZoom) {
         targetLocation?.let { (lat, lon) ->
-            cameraPositionState.position = CameraPosition(
-                center = maplibre.compose.LatLng(
-                    latitude = lat,
-                    longitude = lon
-                ),
-                zoom = targetZoom ?: cameraPositionState.position.zoom,
-                pitch = 0.0,
-                bearing = 0.0
+            cameraState.position = cameraState.position.copy(
+                target = Position(longitude = lon, latitude = lat),
+                zoom = targetZoom ?: cameraState.position.zoom
             )
         }
     }
 
-    val style = rememberMapLibreStyle(
-        styleUrl = "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
-    )
+    LaunchedEffect(cameraState.position) {
+        val p = cameraState.position
+        onCameraChanged(
+            CameraPosition(
+                center = LatLng(
+                    latitude = p.target.latitude,
+                    longitude = p.target.longitude
+                ),
+                zoom = p.zoom,
+                pitch = p.tilt,
+                bearing = p.bearing
+            )
+        )
+    }
 
-    MapLibreMap(
-        style = style,
-        cameraPositionState = cameraPositionState,
+    MaplibreMap(
         modifier = modifier.fillMaxSize(),
-        onMapLoaded = onMapReady,
-        onCameraMove = { camera ->
-            onCameraChanged(CameraPosition(
-                center = camera.center,
-                zoom = camera.zoom,
-                pitch = camera.pitch,
-                bearing = camera.bearing
-            ))
-        }
+        baseStyle = baseStyle,
+        cameraState = cameraState,
+        onMapLoadFinished = onMapReady
     ) {
         content()
     }
 }
 
-/**
- * Map camera position data class.
- *
- * Represents current camera state on map.
- *
- * @property center Center coordinate of map view
- * @property zoom Current zoom level
- * @property pitch Camera pitch angle in degrees (0 = top-down, 60 = max)
- * @property bearing Camera bearing/rotation angle in degrees
- */
+data class LatLng(
+    val latitude: Double,
+    val longitude: Double
+)
+
 data class CameraPosition(
-    val center: maplibre.compose.LatLng,
+    val center: LatLng,
     val zoom: Double,
     val pitch: Double,
     val bearing: Double
 )
 
-/**
- * Map bounds for determining visible area.
- *
- * @property north Latitude of north edge
- * @property south Latitude of south edge
- * @property east Longitude of east edge
- * @property west Longitude of west edge
- */
 data class MapBounds(
     val north: Double,
     val south: Double,
@@ -127,28 +120,9 @@ data class MapBounds(
     val west: Double
 )
 
-/**
- * Calculates approximate map bounds in miles from center.
- *
- * Rough calculation based on zoom level (valid at equator, approximate elsewhere).
- * For hackathon MVP, this provides sufficient radius calculation for 50-mile rule.
- *
- * @param center Center coordinate
- * @param zoom Current zoom level
- * @return Approximate bounds in degrees
- */
-fun calculateMapBoundsFromZoom(
-    center: maplibre.compose.LatLng,
-    zoom: Double
-): MapBounds {
-    // Approximate degrees per pixel at given zoom level
-    // At zoom=0, one tile covers the whole world (~360 degrees)
-    // Each zoom level doubles precision
-    val degreesPerPixel = 360.0 / (256.0 * Math.pow(2.0, zoom))
-
-    // Assume 1000px viewport width for calculation
+fun calculateMapBoundsFromZoom(center: LatLng, zoom: Double): MapBounds {
+    val degreesPerPixel = 360.0 / (256.0 * 2.0.pow(zoom))
     val halfViewportDegrees = degreesPerPixel * 500.0
-
     return MapBounds(
         north = center.latitude + halfViewportDegrees,
         south = center.latitude - halfViewportDegrees,

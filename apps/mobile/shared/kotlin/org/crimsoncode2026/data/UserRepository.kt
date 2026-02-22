@@ -1,8 +1,8 @@
 package org.crimsoncode2026.data
 
-import io.github.jan-tennert.supabase.postgrest.Postgrest
-import io.github.jan-tennert.supabase.postgrest.filter.FilterBuilder
-import io.github.jan-tennert.supabase.postgrest.result.PostgrestResult
+import io.github.jan.supabase.postgrest.Postgrest
+import io.github.jan.supabase.postgrest.filter.FilterBuilder
+import io.github.jan.supabase.postgrest.result.PostgrestResult
 
 /**
  * Repository interface for User data operations

@@ -18,7 +18,7 @@ package org.crimsoncode2026.storage
  * - highPrecisionLocation: Boolean - High precision location mode
  * - clearedEventIds: Set<String> - Event IDs user has cleared from their list (local device cache)
  */
-expect interface PreferencesStorage {
+interface PreferencesStorage {
 
     /**
      * Public alert opt-out preference

@@ -1,10 +1,10 @@
 package org.crimsoncode2026.auth
 
-import io.github.jan-tennert.supabase.auth.Auth
-import io.github.jan-tennert.supabase.auth.auth
-import io.github.jan-tennert.supabase.auth.OtpType
-import io.github.jan-tennert.supabase.auth.user.UserInfo
-import io.github.jan-tennert.supabase.auth.user.UserSession
+import io.github.jan.supabase.auth.Auth
+import io.github.jan.supabase.auth.auth
+import io.github.jan.supabase.auth.OtpType
+import io.github.jan.supabase.auth.user.UserInfo
+import io.github.jan.supabase.auth.user.UserSession
 import org.crimsoncode2026.storage.SecureStorage
 
 /**

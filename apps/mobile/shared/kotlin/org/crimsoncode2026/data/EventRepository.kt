@@ -1,6 +1,6 @@
 package org.crimsoncode2026.data
 
-import io.github.jan-tennert.supabase.postgrest.Postgrest
+import io.github.jan.supabase.postgrest.Postgrest
 
 /**
  * Repository interface for Event data operations
@@ -151,7 +151,7 @@ class EventRepositoryImpl(
                     filter {
                         eq("creator_id", creatorId)
                         gt("expires_at", System.currentTimeMillis())
-                        is("deleted_at", null)
+                        `is`("deleted_at", null)
                     }
                 }
                 .decodeList<Event>()
@@ -179,7 +179,7 @@ class EventRepositoryImpl(
                     gte("lon", minLon)
                     lte("lon", maxLon)
                     gt("expires_at", now)
-                    is("deleted_at", null)
+                    `is`("deleted_at", null)
                 }
             }
             .decodeList<Event>()
@@ -211,7 +211,7 @@ class EventRepositoryImpl(
                     gte("lon", minLon)
                     lte("lon", maxLon)
                     gt("expires_at", now)
-                    is("deleted_at", null)
+                    `is`("deleted_at", null)
                 }
             }
             .decodeList<Event>()
@@ -228,7 +228,7 @@ class EventRepositoryImpl(
             .select {
                 filter {
                     gt("expires_at", now)
-                    is("deleted_at", null)
+                    `is`("deleted_at", null)
                 }
             }
             .decodeList<Event>()
@@ -246,10 +246,9 @@ class EventRepositoryImpl(
                 filter {
                     eq("broadcast_type", BroadcastType.PRIVATE.value)
                     gt("expires_at", now)
-                    is("deleted_at", null)
+                    `is`("deleted_at", null)
                 }
             }
-            .order("created_at", order = io.github.jan-tennert.supabase.postgrest.query.Order.DESCENDING)
             .decodeList<Event>()
 
         Result.success(result)

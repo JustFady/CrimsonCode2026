@@ -1,7 +1,7 @@
 package org.crimsoncode2026.contacts
 
-import io.github.dev-bilal-azzam.kontacts.Contact
-import io.github.dev-bilal-azzam.kontacts.Kontacts
+import com.bilalazzam.kontacts.Contact
+import com.bilalazzam.kontacts.Kontacts
 import org.crimsoncode2026.utils.PhoneNumberUtils
 
 /**

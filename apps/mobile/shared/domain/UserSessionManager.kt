@@ -1,8 +1,8 @@
 package org.crimsoncode2026.domain
 
-import io.github.jan-tennert.supabase.auth.User as SupabaseUser
-import io.github.jan-tennert.supabase.auth.Auth
-import io.github.jan-tennert.supabase.auth.auth
+import io.github.jan.supabase.auth.user.UserInfo as SupabaseUser
+import io.github.jan.supabase.auth.Auth
+import io.github.jan.supabase.auth.auth
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import org.crimsoncode2026.auth.DeviceIdProvider
@@ -62,7 +62,7 @@ class UserSessionManager(
     fun authStateFlow(): Flow<SupabaseUser?> {
         return auth.sessionStatus.map { status ->
             when (status) {
-                is io.github.jan-tennert.supabase.auth.status.SessionStatus.Authenticated -> {
+                is io.github.jan.supabase.auth.status.SessionStatus.Authenticated -> {
                     auth.currentUserOrNull()
                 }
                 else -> null

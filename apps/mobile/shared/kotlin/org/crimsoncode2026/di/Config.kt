@@ -1,14 +1,14 @@
 package org.crimsoncode2026.di
 
 /**
- * App configuration class
- * Loads configuration values from environment variables
+ * App configuration class for Android
+ * Loads configuration from BuildConfig (generated from local.properties)
  *
- * Environment Variables Required:
- * - SUPABASE_URL: Supabase project URL
- * - SUPABASE_ANON_KEY: Supabase anon/public key for client-side access
+ * Required Configuration (in apps/mobile/androidApp/local.properties):
+ * - supabase.url: Supabase project URL
+ * - supabase.anon.key: Supabase anon/public key for client-side access
  *
- * Optional Environment Variables:
+ * Optional Configuration:
  * - SUPABASE_SERVICE_ROLE_KEY: Service role key (NOT used in mobile app, only for Edge Functions)
  * - FCM_SERVER_KEY: Firebase Cloud Messaging server key
  * - NETWORK_CACHE_DURATION: Cache duration for network requests in seconds (default: 10)
@@ -16,19 +16,25 @@ package org.crimsoncode2026.di
  */
 object AppConfig {
     /**
-     * Supabase project URL
+     * Supabase project URL from BuildConfig
      */
     val supabaseUrl: String
-        get() = System.getenv("SUPABASE_URL")
-            ?: "https://your-project-ref.supabase.co"
+        get() = try {
+            org.crimsoncode2026.BuildConfig.SUPABASE_URL
+        } catch (e: Exception) {
+            System.getenv("SUPABASE_URL") ?: "https://your-project-ref.supabase.co"
+        }
 
     /**
-     * Supabase Anon/Public key
+     * Supabase Anon/Public key from BuildConfig
      * Required for client-side Supabase access
      */
     val supabaseAnonKey: String
-        get() = System.getenv("SUPABASE_ANON_KEY")
-            ?: "your-anon-key-here"
+        get() = try {
+            org.crimsoncode2026.BuildConfig.SUPABASE_ANON_KEY
+        } catch (e: Exception) {
+            System.getenv("SUPABASE_ANON_KEY") ?: "your-anon-key-here"
+        }
 
     /**
      * Supabase Service Role key

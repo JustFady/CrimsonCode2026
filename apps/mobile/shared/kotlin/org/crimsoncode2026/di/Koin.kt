@@ -1,8 +1,8 @@
 package org.crimsoncode2026.di
 
 import dev.icerock.moko.permissions.PermissionsController
-import io.github.jan-tennert.supabase.auth.Auth
-import io.github.jan-tennert.supabase.auth.auth
+import io.github.jan.supabase.auth.Auth
+import io.github.jan.supabase.auth.auth
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -52,10 +52,12 @@ import org.crimsoncode2026.screens.settings.SettingsViewModel
 import org.crimsoncode2026.domain.usecases.FcmTokenInitializationUseCase
 import org.crimsoncode2026.notifications.FcmTokenManager
 import org.crimsoncode2026.notifications.FcmTokenRepository
-import io.github.mirzemehdi.kmpnotifier.KmpNotifier
+import com.mmk.kmpnotifier.KmpNotifier
 import org.crimsoncode2026.location.IpGeolocationService
 import org.crimsoncode2026.storage.SecureStorage
 import org.crimsoncode2026.storage.PreferencesStorage
+import org.crimsoncode2026.storage.createPreferencesStorage
+import org.crimsoncode2026.storage.createSecureStorage
 import org.crimsoncode2026.di.supabaseClientModule
 import org.crimsoncode2026.network.NetworkMonitor
 import org.crimsoncode2026.network.createNetworkMonitor
@@ -175,12 +177,6 @@ val supabaseDataModule = module {
         )
     }
 }
-
-/**
- * Factory function for creating SecureStorage
- * Platform-specific implementation provided by expect/actual
- */
-expect fun createSecureStorage(): SecureStorage
 
 /**
  * Koin module for authentication and user session management

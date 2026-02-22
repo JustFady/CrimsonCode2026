@@ -2,37 +2,35 @@ package org.crimsoncode2026.storage
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import rick.com.lib.kksafe.KSafe
-import rick.com.lib.kksafe.createKSafe
-import platform.Foundation.NSUUID
+import eu.anifantakis.lib.ksafe.KSafe
 
 /**
  * iOS implementation of SecureStorage using KSafe
  *
  * Provides encrypted key-value storage backed by iOS Keychain.
  */
-actual class SecureStorage actual constructor() {
+class IOSSecureStorage() : org.crimsoncode2026.storage.SecureStorage {
 
     private val ksafe: KSafe by lazy {
-        createKSafe(
-            fileName = "secure_storage",
+        KSafe(
+            fileName = "securestorage",
         )
     }
 
-    actual override suspend fun getString(key: String): String? = withContext(Dispatchers.Default) {
-        return@withContext ksafe.getString(key)
+    override suspend fun getString(key: String): String? = withContext(Dispatchers.Default) {
+        return@withContext ksafe.get<String?>(key, null)
     }
 
-    actual override suspend fun putString(key: String, value: String) = withContext(Dispatchers.Default) {
-        ksafe.putString(key, value)
+    override suspend fun putString(key: String, value: String) = withContext(Dispatchers.Default) {
+        ksafe.put(key, value)
     }
 
-    actual override suspend fun remove(key: String) = withContext(Dispatchers.Default) {
-        ksafe.remove(key)
+    override suspend fun remove(key: String) = withContext(Dispatchers.Default) {
+        ksafe.delete(key)
     }
 
-    actual override suspend fun clear() = withContext(Dispatchers.Default) {
-        ksafe.clear()
+    override suspend fun clear() = withContext(Dispatchers.Default) {
+        ksafe.clearAll()
     }
 }
 
@@ -40,5 +38,5 @@ actual class SecureStorage actual constructor() {
  * iOS implementation of createSecureStorage factory
  */
 actual fun createSecureStorage(): SecureStorage {
-    return SecureStorage()
+    return IOSSecureStorage()
 }

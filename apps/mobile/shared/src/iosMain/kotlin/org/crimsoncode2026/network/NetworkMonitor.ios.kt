@@ -6,6 +6,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import platform.Network.NWPath
 import platform.Network.NWPathMonitor
 import platform.Network.NWInterface
 import platform.Network.NWInterfaceType
@@ -14,7 +15,7 @@ import platform.darwin.NSObject
 /**
  * Factory function for iOS platform
  */
-fun createNetworkMonitor(scope: CoroutineScope): NetworkMonitor {
+actual fun createNetworkMonitor(scope: CoroutineScope): NetworkMonitor {
     return NetworkMonitorImpl(scope)
 }
 

@@ -4,37 +4,36 @@ import android.content.Context
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.crimsoncode2026.auth.ContextProvider
-import rick.com.lib.kksafe.KSafe
-import rick.com.lib.kksafe.createKSafe
+import eu.anifantakis.lib.ksafe.KSafe
 
 /**
  * Android implementation of SecureStorage using KSafe
  *
  * Provides encrypted key-value storage backed by Android's EncryptedSharedPreferences.
  */
-actual class SecureStorage actual constructor(private val context: Context) {
+class AndroidSecureStorage(private val context: Context) : org.crimsoncode2026.storage.SecureStorage {
 
     private val ksafe: KSafe by lazy {
-        createKSafe(
+        KSafe(
             context = context,
-            fileName = "secure_storage",
+            fileName = "securestorage",
         )
     }
 
-    actual override suspend fun getString(key: String): String? = withContext(Dispatchers.Default) {
-        return@withContext ksafe.getString(key)
+    override suspend fun getString(key: String): String? = withContext(Dispatchers.Default) {
+        return@withContext ksafe.get<String?>(key, null)
     }
 
-    actual override suspend fun putString(key: String, value: String) = withContext(Dispatchers.Default) {
-        ksafe.putString(key, value)
+    override suspend fun putString(key: String, value: String) = withContext(Dispatchers.Default) {
+        ksafe.put(key, value)
     }
 
-    actual override suspend fun remove(key: String) = withContext(Dispatchers.Default) {
-        ksafe.remove(key)
+    override suspend fun remove(key: String) = withContext(Dispatchers.Default) {
+        ksafe.delete(key)
     }
 
-    actual override suspend fun clear() = withContext(Dispatchers.Default) {
-        ksafe.clear()
+    override suspend fun clear() = withContext(Dispatchers.Default) {
+        ksafe.clearAll()
     }
 
     companion object {
@@ -42,8 +41,8 @@ actual class SecureStorage actual constructor(private val context: Context) {
          * Factory method to create SecureStorage using ContextProvider
          * Convenience method for DI setup
          */
-        fun create(): SecureStorage {
-            return SecureStorage(ContextProvider.getContext())
+        fun create(): org.crimsoncode2026.storage.SecureStorage {
+            return AndroidSecureStorage(ContextProvider.getContext())
         }
     }
 }
@@ -52,5 +51,5 @@ actual class SecureStorage actual constructor(private val context: Context) {
  * Android implementation of createSecureStorage factory
  */
 actual fun createSecureStorage(): SecureStorage {
-    return SecureStorage.create()
+    return AndroidSecureStorage.create()
 }

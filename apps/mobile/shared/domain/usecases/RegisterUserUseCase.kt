@@ -1,6 +1,6 @@
 package org.crimsoncode2026.domain.usecases
 
-import io.github.jan-tennert.supabase.auth.auth
+import io.github.jan.supabase.auth.auth
 import kotlinx.coroutines.flow.first
 import org.crimsoncode2026.auth.AuthRepository
 import org.crimsoncode2026.auth.DeviceIdProvider

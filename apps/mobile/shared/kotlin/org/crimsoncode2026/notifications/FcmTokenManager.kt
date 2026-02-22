@@ -1,6 +1,6 @@
 package org.crimsoncode2026.notifications
 
-import io.github.mirzemehdi.kmpnotifier.KmpNotifier
+import com.mmk.kmpnotifier.KmpNotifier
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import org.crimsoncode2026.storage.SecureStorage
