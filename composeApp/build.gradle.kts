@@ -73,6 +73,10 @@ kotlin {
             implementation(libs.ksafe.compose)
 
             implementation(libs.kontacts)
+
+            implementation(libs.supabase.auth.kt)
+            implementation(libs.supabase.postgrest.kt)
+            implementation(libs.supabase.realtime.kt)
         }
     }
 }
