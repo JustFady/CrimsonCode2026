@@ -46,6 +46,7 @@ import org.crimsoncode2026.notifications.FcmTokenRepository
 import io.github.mirzemehdi.kmpnotifier.KmpNotifier
 import org.crimsoncode2026.location.IpGeolocationService
 import org.crimsoncode2026.storage.SecureStorage
+import org.crimsoncode2026.storage.PreferencesStorage
 import org.crimsoncode2026.di.supabaseClientModule
 import org.koin.core.component.getKoin
 import org.koin.core.context.startKoin
@@ -140,6 +141,9 @@ expect fun createSecureStorage(): SecureStorage
 val authModule = module {
     // Secure Storage (platform-specific via expect/actual factory)
     single<SecureStorage> { createSecureStorage() }
+
+    // Preferences Storage (platform-specific via expect/actual factory)
+    single<PreferencesStorage> { createPreferencesStorage() }
 
     // Auth Repository
     single<AuthRepository> { AuthRepositoryImpl(get(), get()) }
