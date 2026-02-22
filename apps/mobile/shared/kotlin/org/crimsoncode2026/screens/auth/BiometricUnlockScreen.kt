@@ -22,16 +22,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import dev.icerock.moko.biometry.BiometryAuthenticatorFactory
-
-/**
- * Result of biometric authentication
- */
-sealed class BiometricAuthResult {
-    data object Success : BiometricAuthResult()
-    data object Failed : BiometricAuthResult()
-    data class Error(val message: String) : BiometricAuthResult()
-}
+import org.crimsoncode2026.auth.BiometricAuthManager
+import org.crimsoncode2026.auth.BiometricResult
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 
 /**
  * Biometric unlock screen
@@ -48,25 +42,33 @@ fun BiometricUnlockScreen(
 ) {
     var isAuthenticating by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
-    val biometryFactory = remember { BiometryAuthenticatorFactory() }
-    val biometryAuthenticator = remember { biometryFactory.createBiometryAuthenticator() }
+    val biometricAuthManager: BiometricAuthManager by inject()
 
     // Auto-trigger biometric prompt on screen load
     LaunchedEffect(Unit) {
         isAuthenticating = true
-        performBiometricAuth(biometryAuthenticator) { result ->
-            when (result) {
-                is BiometricAuthResult.Success -> {
-                    onUnlockSuccess()
-                }
-                is BiometricAuthResult.Failed -> {
-                    isAuthenticating = false
-                    error = "Biometric authentication failed"
-                }
-                is BiometricAuthResult.Error -> {
-                    isAuthenticating = false
-                    error = result.message
-                }
+        val result = biometricAuthManager.authenticate(
+            requestTitle = "Unlock Emergency Response",
+            requestReason = "Authenticate to access the app",
+            failureButtonText = "Cancel",
+            allowDeviceCredentials = true
+        )
+
+        when (result) {
+            is BiometricResult.Success -> {
+                onUnlockSuccess()
+            }
+            is BiometricResult.Failed -> {
+                isAuthenticating = false
+                error = "Biometric authentication failed"
+            }
+            is BiometricResult.Error -> {
+                isAuthenticating = false
+                error = result.message
+            }
+            is BiometricResult.NotAvailable -> {
+                isAuthenticating = false
+                error = "Biometric authentication not available"
             }
         }
     }
@@ -102,6 +104,15 @@ fun BiometricUnlockScreen(
                 style = MaterialTheme.typography.bodyLarge
             )
 
+            if (error != null) {
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = error!!,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
+
             Spacer(modifier = Modifier.height(32.dp))
 
             if (isAuthenticating) {
@@ -111,7 +122,7 @@ fun BiometricUnlockScreen(
             Spacer(modifier = Modifier.height(48.dp))
 
             OutlinedButton(
-                onClick = { onLogout() },
+                onClick = onLogout,
                 enabled = !isAuthenticating
             ) {
                 Text("Use Phone Number Instead")
@@ -121,36 +132,12 @@ fun BiometricUnlockScreen(
 }
 
 /**
- * Perform biometric authentication using moko-biometry suspend API
- */
-private suspend fun performBiometricAuth(
-    authenticator: dev.icerock.moko.biometry.BiometryAuthenticator,
-    onResult: (BiometricAuthResult) -> Unit
-) {
-    try {
-        val isSuccess = authenticator.checkBiometryAuthentication(
-            requestTitle = "Unlock Emergency Response",
-            requestReason = "Authenticate to access the app",
-            failureButtonText = "Cancel",
-            allowDeviceCredentials = true
-        )
-        if (isSuccess) {
-            onResult(BiometricAuthResult.Success)
-        } else {
-            onResult(BiometricAuthResult.Failed)
-        }
-    } catch (e: Exception) {
-        onResult(BiometricAuthResult.Error(e.message ?: "Biometric authentication error"))
-    }
-}
-
-/**
  * Get appropriate biometric icon based on available biometric type
  * This is a placeholder - actual implementation would check BiometryType
  */
 @Composable
 private fun rememberBiometricIcon(): androidx.compose.ui.graphics.vector.ImageVector {
-    // Placeholder - in production, check BiometryType.FACE_ID vs TOUCH_ID
+    // Placeholder - in production, check BiometricAvailability.BiometryType
     // For now, returning a generic icon
     return androidx.compose.material.icons.Icons.Default.Fingerprint
 }

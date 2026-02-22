@@ -1,7 +1,7 @@
 package org.crimsoncode2026.domain.usecases
 
+import org.crimsoncode2026.auth.AuthRepository
 import org.crimsoncode2026.domain.UserSessionManager
-import org.crimsoncode2026.storage.SecureStorage
 
 /**
  * Result of session initialization check
@@ -36,13 +36,9 @@ sealed class SessionInitResult {
  * 3. Return appropriate flow (OTP login or biometric unlock)
  */
 class SessionInitUseCase(
-    private val secureStorage: SecureStorage,
+    private val authRepository: AuthRepository,
     private val userSessionManager: UserSessionManager
 ) {
-
-    companion object {
-        private const val REFRESH_TOKEN_KEY = "refresh_token"
-    }
 
     /**
      * Initialize session and determine authentication flow
@@ -51,7 +47,7 @@ class SessionInitUseCase(
     suspend operator fun invoke(): SessionInitResult {
         // Step 1: Check for existing refresh token in encrypted storage
         val refreshToken = try {
-            secureStorage.getString(REFRESH_TOKEN_KEY)
+            authRepository.getRefreshToken()
         } catch (e: Exception) {
             return SessionInitResult.Error("Failed to check session")
         }
@@ -68,7 +64,7 @@ class SessionInitUseCase(
         if (userId == null) {
             // Clear invalid stored token
             try {
-                secureStorage.remove(REFRESH_TOKEN_KEY)
+                authRepository.clearRefreshToken()
             } catch (e: Exception) {
                 // Ignore cleanup errors
             }
@@ -84,7 +80,7 @@ class SessionInitUseCase(
      */
     suspend fun clearSession() {
         try {
-            secureStorage.remove(REFRESH_TOKEN_KEY)
+            authRepository.clearRefreshToken()
             userSessionManager.signOut()
         } catch (e: Exception) {
             // Ignore cleanup errors

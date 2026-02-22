@@ -8,6 +8,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import org.crimsoncode2026.auth.AuthRepository
 import org.crimsoncode2026.auth.AuthRepositoryImpl
+import org.crimsoncode2026.auth.BiometricAuthManager
 import org.crimsoncode2026.auth.DeviceIdProvider
 import org.crimsoncode2026.data.EventRecipientRepository
 import org.crimsoncode2026.data.EventRecipientRepositoryImpl
@@ -84,7 +85,10 @@ val authModule = module {
     single<SecureStorage> { createSecureStorage() }
 
     // Auth Repository
-    single<AuthRepository> { AuthRepositoryImpl(get()) }
+    single<AuthRepository> { AuthRepositoryImpl(get(), get()) }
+
+    // Biometric Auth Manager
+    single { BiometricAuthManager() }
 
     // User Registration Use Case
     single { RegisterUserUseCase(get(), get(), get(), get(), get()) }
