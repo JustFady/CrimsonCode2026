@@ -41,6 +41,7 @@ import org.crimsoncode2026.contacts.DeviceContactsService
 import org.crimsoncode2026.domain.usecases.AppUserDetectionUseCase
 import org.crimsoncode2026.domain.usecases.ImportContactsUseCase
 import org.crimsoncode2026.screens.contacts.ContactsViewModel
+import org.crimsoncode2026.screens.eventcreation.EventCreationViewModel
 import org.crimsoncode2026.screens.privateevents.PrivateEventsViewModel
 import org.crimsoncode2026.screens.settings.SettingsViewModel
 import org.crimsoncode2026.domain.usecases.FcmTokenInitializationUseCase
@@ -203,6 +204,14 @@ val eventsModule = module {
             getReceivedEventsUseCase = get(),
             markEventOpenedUseCase = get(),
             subscribeToPrivateEventsUseCase = get(),
+            scope = params.get()
+        )
+    }
+
+    // Event Creation ViewModel - state management for event creation wizard
+    factory { params ->
+        EventCreationViewModel(
+            createEventUseCase = get(),
             scope = params.get()
         )
     }
