@@ -6,6 +6,8 @@ import io.github.jan-tennert.supabase.auth.auth
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import org.crimsoncode2026.auth.AuthRepository
+import org.crimsoncode2026.auth.AuthRepositoryImpl
 import org.crimsoncode2026.auth.DeviceIdProvider
 import org.crimsoncode2026.data.EventRecipientRepository
 import org.crimsoncode2026.data.EventRecipientRepositoryImpl
@@ -18,6 +20,8 @@ import org.crimsoncode2026.data.UserContactRepositoryImpl
 import org.crimsoncode2026.data.UserRepository
 import org.crimsoncode2026.data.UserRepositoryImpl
 import org.crimsoncode2026.domain.UserSessionManager
+import org.crimsoncode2026.domain.usecases.RegisterUserUseCase
+import org.crimsoncode2026.domain.usecases.SessionInitUseCase
 import org.crimsoncode2026.domain.usecases.UpdateDisplayNameUseCase
 import org.crimsoncode2026.domain.usecases.UpdateFcmTokenUseCase
 import org.crimsoncode2026.domain.usecases.UpdateLastActiveUseCase
@@ -78,6 +82,15 @@ expect fun createSecureStorage(): SecureStorage
 val authModule = module {
     // Secure Storage (platform-specific via expect/actual factory)
     single<SecureStorage> { createSecureStorage() }
+
+    // Auth Repository
+    single<AuthRepository> { AuthRepositoryImpl(get()) }
+
+    // User Registration Use Case
+    single { RegisterUserUseCase(get(), get(), get(), get(), get()) }
+
+    // Session Init Use Case
+    single { SessionInitUseCase(get(), get()) }
 
     // User Profile Use Cases
     single { UpdateDisplayNameUseCase(get()) }
