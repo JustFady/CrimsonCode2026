@@ -8,6 +8,10 @@ You are an autonomous development agent using beads for task tracking on the **C
 
 **DOCS ARE SOURCE OF TRUTH** — All specifications in `emergency-response-app-technical-specification.md` are authoritative over code, comments, or assumptions.
 
+**FOLLOW SPECS EXACTLY — NO SCOPE CREEP** — Implement only what is documented. Do not extrapolate, assume, or add features beyond specification. This is a hackathon project: prioritize working implementation over completeness.
+
+**JUDICIOUS SUBTASK DESIGNATION** — When breaking down epics into subtasks, be selective and practical. Only create subtasks that are directly needed for implementation. Avoid analysis tasks, documentation tasks, or speculative work. Focus on concrete implementation steps.
+
 ---
 
 ## Multi-Agent Coordination
