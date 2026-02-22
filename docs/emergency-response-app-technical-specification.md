@@ -49,7 +49,7 @@ Cross-platform emergency response mobile application for USA users. Single devic
 | Database | Supabase PostgreSQL |
 | DB Access | Supabase SQL migrations + supabase-kt |
 | Authentication | Supabase Auth (Phone OTP) |
-| Session Management | KSafe / KDataNest encrypted storage + moko-biometry |
+| Session Management | KSafe / KDataNest encrypted storage |
 | Real-time | Supabase Realtime (supabase-kt) |
 | Maps | MapLibre Compose (cross-platform) |
 | Push Notifications | KMPNotifier with Firebase FCM (cross-platform) |
@@ -75,7 +75,6 @@ Cross-platform emergency response mobile application for USA users. Single devic
 │  │  - KMPNotifier     │  │- KMPNotifier│
 │  │  - moko-geo    │  │- moko-geo   ││
 │  │  - Kontacts    │  │- Kontacts   ││
-│  │  - moko-biometry│ │- moko-biometry│
 │  └────────┬───────┘  └──────┬───────┘│
 │           │                  │        │
 │           └───────┬──────────┘        │
@@ -112,7 +111,7 @@ Cross-platform emergency response mobile application for USA users. Single devic
         │  ┌────────────────────┐│
         │  │ Edge Functions    ││
         │  └────────────────────┘│
-        └────────────────────────┘
+        └─────────────────────────┘
                      │
         ┌────────────┴────────────┐
         │ EXTERNAL INTEGRATIONS    │
@@ -249,10 +248,9 @@ Users (1) ----< (N) EventUserState ----> (N) Events   [optional]
 
 **Subsequent App Opens:**
 1. App checks for existing session in encrypted storage (KSafe / KDataNest)
-2. If valid refresh token exists: Request biometric authentication
-3. Biometric verified: New access token issued, refresh token remains
-4. No OTP required
-5. Navigate to main application
+2. If valid refresh token exists: Issue new access token using stored refresh token
+3. No OTP required
+4. Navigate to main application
 
 **Re-authentication Required When:**
 - Refresh token expires (30 days)
@@ -268,18 +266,12 @@ Users (1) ----< (N) EventUserState ----> (N) Events   [optional]
 | Refresh Token | KSafe / KDataNest encrypted storage | 30 days |
 | FCM Push Token | Supabase database | Until device uninstalls app |
 
-### Biometric Authentication
-
-- Required to unlock app and access features
-- Required to create emergency events
-- Falls back to device passcode if biometrics unavailable
-
 ### Security Measures (MVP)
 
 - Phone OTP login via Supabase Auth
 - Tokens encrypted in KSafe / KDataNest
 - Device ID checked against current bound device on each session refresh
-- Session persists for 30 days with biometric re-auth
+- Session persists for 30 days with refresh token
 
 ---
 
@@ -619,7 +611,6 @@ Users (1) ----< (N) EventUserState ----> (N) Events   [optional]
 - Public alert opt-out preference
 - Notification preferences (master toggle, crisis toggle, warning toggle, vibration)
 - Location accuracy mode preference
-- Biometric settings
 
 ### Notification Settings
 
@@ -786,14 +777,12 @@ Users (1) ----< (N) EventUserState ----> (N) Events   [optional]
 - SQL schema defined and initial migration applied
 - Authentication flow (Supabase Auth phone OTP via supabase-kt)
 - KSafe / KDataNest encrypted storage for secure token storage
-- moko-biometry integration for biometric authentication flow
 - Basic Compose UI shell with navigation
 - Development environment functional
 
 **Success Criteria:**
 - User can register with phone number and OTP
 - Session persists securely across app restarts
-- Biometric unlock functions on subsequent logins
 
 ---
 
