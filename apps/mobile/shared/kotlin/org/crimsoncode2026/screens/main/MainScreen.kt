@@ -4,6 +4,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Badge
 import androidx.compose.material3.FloatingActionButton
@@ -26,7 +28,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.EventNote
+import org.crimsoncode2026.compose.MapView
+import org.crimsoncode2026.compose.EventMarkers
 import org.crimsoncode2026.location.LocationPermissionHandler
+import org.crimsoncode2026.location.LocationData
+import org.crimsoncode2026.screens.publicevents.EventDetailsPanel
 import org.koin.compose.koinInject
 
 /**
@@ -34,9 +40,12 @@ import org.koin.compose.koinInject
  *
  * Features:
  * - Event map view using MapLibre with OpenStreetMap tiles
+ * - Event markers displayed from MainMapViewModel
  * - Settings button in top app bar
  * - FAB button to launch event creation wizard
  * - Event list toggle button showing event count
+ * - Event details panel for selected event
+ * - Map camera control for zooming to events
  *
  * @param onNavigateToSettings Callback when user navigates to settings
  * @param onCreateEvent Callback when user taps FAB to create event
@@ -104,11 +113,55 @@ fun MainScreen(
             }
         }
     ) { paddingValues ->
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(text = "Main App - Event Map Coming Soon")
+        Box(modifier = Modifier.fillMaxSize()) {
+            // Map view with event markers
+            MapView(
+                modifier = Modifier.fillMaxSize(),
+                onMapReady = {
+                    // Center map on user location when available
+                    state.userLocation?.let { location ->
+                        viewModel.zoomToLocation(location.latitude, location.longitude, 12.0)
+                    }
+                },
+                onCameraChanged = { cameraPosition ->
+                    // Update map bounds in ViewModel for querying events
+                    org.crimsoncode2026.compose.calculateMapBoundsFromZoom(
+                        center = cameraPosition.center,
+                        zoom = cameraPosition.zoom
+                    ).let { bounds ->
+                        viewModel.updateMapBounds(bounds)
+                    }
+                },
+                targetLocation = state.cameraPosition?.let {
+                    it.latitude to it.longitude
+                },
+                targetZoom = state.cameraPosition?.zoom
+            ) {
+                // Event markers layer
+                EventMarkers(
+                    events = state.loadedEvents.map { it.event },
+                    onEventClick = { event ->
+                        viewModel.selectEvent(event, state.loadedEvents
+                            .find { it.event.id == event.id }?.creator)
+                    }
+                )
+            }
+
+            // Event details panel (bottom sheet) when event is selected
+            state.selectedEvent?.let { mapEvent ->
+                EventDetailsPanel(
+                    event = mapEvent.event,
+                    creator = mapEvent.creator,
+                    onDismiss = { viewModel.clearSelectedEvent() },
+                    onClear = {
+                        viewModel.clearEvent(mapEvent.event.id)
+                    },
+                    onNavigateToLocation = {
+                        // Navigate to event location - center map on event
+                        viewModel.zoomToEvent(mapEvent.event.id)
+                    }
+                )
+            }
         }
     }
 }

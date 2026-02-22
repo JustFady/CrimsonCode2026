@@ -50,3 +50,26 @@ data class MapBounds(
         }
     }
 }
+
+/**
+ * Calculate map bounds from camera center and zoom level
+ *
+ * Approximates the visible area of the map based on zoom level.
+ * Higher zoom = smaller visible area = more precise bounds.
+ *
+ * @param center Center position of the map
+ * @param zoom Zoom level (1-20, where 20 is most detailed)
+ * @return Map bounds representing the visible area
+ */
+fun calculateMapBoundsFromZoom(center: maplibre.compose.LatLng, zoom: Double): MapBounds {
+    // Approximate visible radius based on zoom level
+    // At zoom 10, ~100km radius; at zoom 14, ~10km radius; at zoom 18, ~1km radius
+    val visibleRadiusDegrees = 180.0 / Math.pow(2.0, zoom) * 0.5
+
+    return MapBounds(
+        north = center.latitude + visibleRadiusDegrees,
+        south = center.latitude - visibleRadiusDegrees,
+        east = center.longitude + visibleRadiusDegrees,
+        west = center.longitude - visibleRadiusDegrees
+    )
+}

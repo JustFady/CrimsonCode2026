@@ -8,10 +8,12 @@ import kotlinx.coroutines.launch
 import org.crimsoncode2026.compose.CameraPosition
 import org.crimsoncode2026.compose.MapBounds
 import org.crimsoncode2026.data.Event
+import org.crimsoncode2026.data.RealtimeEventPayload
 import org.crimsoncode2026.data.User
 import org.crimsoncode2026.domain.usecases.GetReceivedEventsUseCase
 import org.crimsoncode2026.domain.usecases.QueryPublicEventsParams
 import org.crimsoncode2026.domain.usecases.QueryPublicEventsUseCase
+import org.crimsoncode2026.domain.usecases.SubscribeToPrivateEventsUseCase
 import org.crimsoncode2026.location.LocationData
 
 /**
@@ -48,6 +50,17 @@ data class MainMapState(
 }
 
 /**
+ * Incoming private event from realtime
+ *
+ * @property payload The event payload
+ * @property isNew Whether this is a new event (true) or an update (false)
+ */
+data class IncomingPrivateEvent(
+    val payload: RealtimeEventPayload,
+    val isNew: Boolean = true
+)
+
+/**
  * Main Map ViewModel
  *
  * Manages map state including:
@@ -55,20 +68,24 @@ data class MainMapState(
  * - Current map bounds
  * - Loaded events (private + public)
  * - Selected event for details panel
+ * - Realtime subscription for private events
  *
  * Coordinates:
  * - QueryPublicEventsUseCase for public events within bounds
  * - LocationState for user location updates
  * - GetReceivedEventsUseCase for private events
+ * - SubscribeToPrivateEventsUseCase for realtime private event updates
  *
  * @param queryPublicEventsUseCase Use case for querying public events by bounds
  * @param getReceivedEventsUseCase Use case for getting received private events
+ * @param subscribeToPrivateEventsUseCase Use case for subscribing to realtime private events
  * @param locationState Location state manager
  * @param scope Coroutine scope for ViewModel
  */
 class MainMapViewModel(
     private val queryPublicEventsUseCase: QueryPublicEventsUseCase,
     private val getReceivedEventsUseCase: GetReceivedEventsUseCase,
+    private val subscribeToPrivateEventsUseCase: SubscribeToPrivateEventsUseCase,
     private val locationState: org.crimsoncode2026.location.LocationState,
     private val scope: CoroutineScope
 ) {
@@ -81,6 +98,9 @@ class MainMapViewModel(
 
         // Load initial private events
         loadPrivateEvents()
+
+        // Start realtime subscription for private events
+        startRealtimeSubscription()
     }
 
     /**

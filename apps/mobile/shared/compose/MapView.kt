@@ -2,7 +2,11 @@ package org.crimsoncode2026.compose
 
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import maplibre.compose.CameraPosition
@@ -18,6 +22,7 @@ import maplibre.compose.rememberMapLibreStyle
  * - Configurable camera position
  * - Map gestures enabled (zoom, pan, rotate)
  * - Optional content slot for markers and other map overlays
+ * - Optional target location for programmatically centering map
  *
  * @param modifier Modifier for map view
  * @param initialZoom Initial zoom level (default: 10.0)
@@ -25,6 +30,8 @@ import maplibre.compose.rememberMapLibreStyle
  * @param initialLongitude Initial center longitude (default: -98.5795 - approximate USA center)
  * @param onMapReady Callback when map is fully loaded and ready for interaction
  * @param onCameraChanged Callback when camera position changes (optional)
+ * @param targetLocation Optional target location to center map on (lat, lon)
+ * @param targetZoom Optional zoom level when centering on target location
  * @param content Optional composable content to display on map (e.g., markers, layers)
  */
 @Composable
@@ -35,9 +42,11 @@ fun MapView(
     initialLongitude: Double = -98.5795,
     onMapReady: () -> Unit = {},
     onCameraChanged: (CameraPosition) -> Unit = {},
+    targetLocation: Pair<Double, Double>? = null,
+    targetZoom: Double? = null,
     content: @Composable () -> Unit = {}
 ) {
-    val cameraPositionState = rememberCameraPositionState(
+    var cameraPositionState = rememberCameraPositionState(
         initialPosition = CameraPosition(
             center = maplibre.compose.LatLng(
                 latitude = initialLatitude,
@@ -48,6 +57,21 @@ fun MapView(
             bearing = 0.0
         )
     )
+
+    // Center map on target location when it changes
+    LaunchedEffect(targetLocation) {
+        targetLocation?.let { (lat, lon) ->
+            cameraPositionState.position = CameraPosition(
+                center = maplibre.compose.LatLng(
+                    latitude = lat,
+                    longitude = lon
+                ),
+                zoom = targetZoom ?: cameraPositionState.position.zoom,
+                pitch = 0.0,
+                bearing = 0.0
+            )
+        }
+    }
 
     val style = rememberMapLibreStyle(
         styleUrl = "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
