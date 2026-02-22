@@ -15,6 +15,7 @@ import org.crimsoncode2026.domain.usecases.QueryPublicEventsParams
 import org.crimsoncode2026.domain.usecases.QueryPublicEventsUseCase
 import org.crimsoncode2026.domain.usecases.SubscribeToPrivateEventsUseCase
 import org.crimsoncode2026.location.LocationData
+import org.crimsoncode2026.storage.PreferencesStorage
 
 /**
  * Map event with creator info for private events
@@ -34,7 +35,8 @@ data class MainMapState(
     val loadedEvents: List<MapEvent> = emptyList(),
     val selectedEvent: MapEvent? = null,
     val isLoading: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
+    val clearedEventIds: Set<String> = emptySet()
 ) {
     /**
      * Check if there are any events to display
@@ -69,17 +71,20 @@ data class IncomingPrivateEvent(
  * - Loaded events (private + public)
  * - Selected event for details panel
  * - Realtime subscription for private events
+ * - Cleared events persistence (local device cache)
  *
  * Coordinates:
  * - QueryPublicEventsUseCase for public events within bounds
  * - LocationState for user location updates
  * - GetReceivedEventsUseCase for private events
  * - SubscribeToPrivateEventsUseCase for realtime private event updates
+ * - PreferencesStorage for cleared events persistence
  *
  * @param queryPublicEventsUseCase Use case for querying public events by bounds
  * @param getReceivedEventsUseCase Use case for getting received private events
  * @param subscribeToPrivateEventsUseCase Use case for subscribing to realtime private events
  * @param locationState Location state manager
+ * @param preferencesStorage Local storage for user preferences including cleared events
  * @param scope Coroutine scope for ViewModel
  */
 class MainMapViewModel(
@@ -87,6 +92,7 @@ class MainMapViewModel(
     private val getReceivedEventsUseCase: GetReceivedEventsUseCase,
     private val subscribeToPrivateEventsUseCase: SubscribeToPrivateEventsUseCase,
     private val locationState: org.crimsoncode2026.location.LocationState,
+    private val preferencesStorage: PreferencesStorage,
     private val scope: CoroutineScope
 ) {
     private val _state = MutableStateFlow(MainMapState())
@@ -95,6 +101,9 @@ class MainMapViewModel(
     init {
         // Collect user location updates
         collectUserLocation()
+
+        // Load cleared event IDs from storage
+        loadClearedEventIds()
 
         // Load initial private events
         loadPrivateEvents()
@@ -143,8 +152,15 @@ class MainMapViewModel(
 
     /**
      * Clear all events from the map (local cache only)
+     * Saves all current event IDs to cleared events storage.
      */
     fun clearAllEvents() {
+        val currentEventIds = _state.value.loadedEvents.map { it.event.id }
+        scope.launch {
+            currentEventIds.forEach { eventId ->
+                preferencesStorage.addClearedEventId(eventId)
+            }
+        }
         _state.value = _state.value.copy(
             loadedEvents = emptyList(),
             selectedEvent = null
@@ -153,10 +169,14 @@ class MainMapViewModel(
 
     /**
      * Clear a specific event from the list (local cache only)
+     * Saves event ID to cleared events storage.
      *
      * @param eventId ID of event to clear
      */
     fun clearEvent(eventId: String) {
+        scope.launch {
+            preferencesStorage.addClearedEventId(eventId)
+        }
         _state.value = _state.value.copy(
             loadedEvents = _state.value.loadedEvents.filterNot { it.event.id == eventId },
             selectedEvent = if (_state.value.selectedEvent?.event?.id == eventId) {
@@ -277,6 +297,12 @@ class MainMapViewModel(
     private fun handleRealtimeEvent(incomingEvent: IncomingPrivateEvent) {
         val payload = incomingEvent.payload
 
+        // Check if event was previously cleared by user
+        if (payload.eventId in _state.value.clearedEventIds) {
+            // Event was cleared, don't add it to loaded events
+            return
+        }
+
         // Create Event from payload
         val event = Event(
             id = payload.eventId,
@@ -362,6 +388,30 @@ class MainMapViewModel(
     }
 
     /**
+     * Load cleared event IDs from preferences storage
+     * This ensures events cleared by the user remain hidden across app restarts.
+     */
+    private fun loadClearedEventIds() {
+        scope.launch {
+            val clearedIds = preferencesStorage.getClearedEventIds()
+            _state.value = _state.value.copy(
+                clearedEventIds = clearedIds
+            )
+        }
+    }
+
+    /**
+     * Filter events to exclude cleared ones
+     *
+     * @param events List of events to filter
+     * @return Filtered list excluding cleared events
+     */
+    private fun filterClearedEvents(events: List<MapEvent>): List<MapEvent> {
+        val clearedIds = _state.value.clearedEventIds
+        return events.filterNot { it.event.id in clearedIds }
+    }
+
+    /**
      * Load private events
      */
     private fun loadPrivateEvents() {
@@ -373,8 +423,9 @@ class MainMapViewModel(
                         // For now, we create MapEvent with null creator
                         MapEvent(event, null)
                     }
+                    val filteredEvents = filterClearedEvents(privateMapEvents)
                     _state.value = _state.value.copy(
-                        loadedEvents = privateMapEvents,
+                        loadedEvents = filteredEvents,
                         isLoading = false
                     )
                 }
@@ -408,10 +459,13 @@ class MainMapViewModel(
                     MapEvent(event, null)
                 }
 
+                // Filter out cleared public events
+                val filteredPublicEvents = filterClearedEvents(publicMapEvents)
+
                 // Combine with existing private events
                 val privateEvents = _state.value.loadedEvents.filter { it.event.isPrivate }
                 _state.value = _state.value.copy(
-                    loadedEvents = privateEvents + publicMapEvents,
+                    loadedEvents = privateEvents + filteredPublicEvents,
                     isLoading = false,
                     error = null
                 )

@@ -16,6 +16,7 @@ package org.crimsoncode2026.storage
  * - privateAlertsEnabled: Boolean - Private event notifications
  * - vibrationEnabled: Boolean - Vibration for notifications
  * - highPrecisionLocation: Boolean - High precision location mode
+ * - clearedEventIds: Set<String> - Event IDs user has cleared from their list (local device cache)
  */
 expect interface PreferencesStorage {
 
@@ -79,4 +80,33 @@ expect interface PreferencesStorage {
      * Reset to default values.
      */
     suspend fun clearAll()
+
+    /**
+     * Get cleared event IDs
+     * Returns set of event IDs that user has cleared from their list.
+     */
+    suspend fun getClearedEventIds(): Set<String>
+
+    /**
+     * Add an event ID to cleared events set
+     */
+    suspend fun addClearedEventId(eventId: String)
+
+    /**
+     * Remove an event ID from cleared events set
+     * Useful if event needs to be re-shown (e.g., event was cleared in error).
+     */
+    suspend fun removeClearedEventId(eventId: String)
+
+    /**
+     * Clear all cleared event IDs
+     * Used when user wants to see all events again.
+     */
+    suspend fun clearClearedEventIds()
 }
+
+/**
+ * Factory function for creating PreferencesStorage
+ * Platform-specific implementation provided by expect/actual
+ */
+expect fun createPreferencesStorage(): PreferencesStorage

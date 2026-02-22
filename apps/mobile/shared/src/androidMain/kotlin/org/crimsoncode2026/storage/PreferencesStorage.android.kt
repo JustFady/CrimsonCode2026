@@ -3,6 +3,8 @@ package org.crimsoncode2026.storage
 import android.content.Context
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import org.crimsoncode2026.auth.ContextProvider
 
 /**
@@ -28,6 +30,8 @@ actual class PreferencesStorage actual constructor() {
         private const val KEY_PRIVATE_ALERTS_ENABLED = "private_alerts_enabled"
         private const val KEY_VIBRATION_ENABLED = "vibration_enabled"
         private const val KEY_HIGH_PRECISION_LOCATION = "high_precision_location"
+        private const val KEY_CLEARED_EVENT_IDS = "cleared_event_ids"
+        private val json = Json { ignoreUnknownKeys = true }
     }
 
     actual override suspend fun getPublicAlertOptOut(): Boolean = withContext(Dispatchers.Default) {
@@ -100,6 +104,39 @@ actual class PreferencesStorage actual constructor() {
 
     actual override suspend fun clearAll() = withContext(Dispatchers.Default) {
         prefs.edit().clear().apply()
+    }
+
+    actual override suspend fun getClearedEventIds(): Set<String> = withContext(Dispatchers.Default) {
+        val clearedIdsJson = prefs.getString(KEY_CLEARED_EVENT_IDS, null)
+        if (clearedIdsJson != null) {
+            try {
+                json.decodeFromString<List<String>>(clearedIdsJson).toSet()
+            } catch (e: Exception) {
+                emptySet()
+            }
+        } else {
+            emptySet()
+        }
+    }
+
+    actual override suspend fun addClearedEventId(eventId: String) = withContext(Dispatchers.Default) {
+        val currentIds = getClearedEventIds().toMutableSet()
+        currentIds.add(eventId)
+        prefs.edit()
+            .putString(KEY_CLEARED_EVENT_IDS, json.encodeToString(currentIds.toList()))
+            .apply()
+    }
+
+    actual override suspend fun removeClearedEventId(eventId: String) = withContext(Dispatchers.Default) {
+        val currentIds = getClearedEventIds().toMutableSet()
+        currentIds.remove(eventId)
+        prefs.edit()
+            .putString(KEY_CLEARED_EVENT_IDS, json.encodeToString(currentIds.toList()))
+            .apply()
+    }
+
+    actual override suspend fun clearClearedEventIds() = withContext(Dispatchers.Default) {
+        prefs.edit().remove(KEY_CLEARED_EVENT_IDS).apply()
     }
 }
 

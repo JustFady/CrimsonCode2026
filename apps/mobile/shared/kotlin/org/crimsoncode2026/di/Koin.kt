@@ -233,6 +233,7 @@ val eventsModule = module {
             getReceivedEventsUseCase = get(),
             subscribeToPrivateEventsUseCase = get(),
             locationState = get { parametersOf(CoroutineScope(SupervisorJob() + Dispatchers.Default)) },
+            preferencesStorage = get(),
             scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
         )
     }

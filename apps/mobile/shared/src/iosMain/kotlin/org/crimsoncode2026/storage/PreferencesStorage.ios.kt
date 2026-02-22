@@ -2,6 +2,8 @@ package org.crimsoncode2026.storage
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import platform.Foundation.NSUserDefaults
 
 /**
@@ -24,6 +26,8 @@ actual class PreferencesStorage actual constructor() {
         private const val KEY_PRIVATE_ALERTS_ENABLED = "private_alerts_enabled"
         private const val KEY_VIBRATION_ENABLED = "vibration_enabled"
         private const val KEY_HIGH_PRECISION_LOCATION = "high_precision_location"
+        private const val KEY_CLEARED_EVENT_IDS = "cleared_event_ids"
+        private val json = Json { ignoreUnknownKeys = true }
     }
 
     actual override suspend fun getPublicAlertOptOut(): Boolean = withContext(Dispatchers.Default) {
@@ -103,11 +107,41 @@ actual class PreferencesStorage actual constructor() {
             KEY_WARNING_ALERTS_ENABLED,
             KEY_PRIVATE_ALERTS_ENABLED,
             KEY_VIBRATION_ENABLED,
-            KEY_HIGH_PRECISION_LOCATION
+            KEY_HIGH_PRECISION_LOCATION,
+            KEY_CLEARED_EVENT_IDS
         )
         keys.forEach { key ->
             userDefaults.removeObjectForKey(key)
         }
+    }
+
+    actual override suspend fun getClearedEventIds(): Set<String> = withContext(Dispatchers.Default) {
+        val clearedIdsJson = userDefaults.stringForKey(KEY_CLEARED_EVENT_IDS)
+        if (clearedIdsJson != null) {
+            try {
+                json.decodeFromString<List<String>>(clearedIdsJson).toSet()
+            } catch (e: Exception) {
+                emptySet()
+            }
+        } else {
+            emptySet()
+        }
+    }
+
+    actual override suspend fun addClearedEventId(eventId: String) = withContext(Dispatchers.Default) {
+        val currentIds = getClearedEventIds().toMutableSet()
+        currentIds.add(eventId)
+        userDefaults.setObject(json.encodeToString(currentIds.toList()), forKey = KEY_CLEARED_EVENT_IDS)
+    }
+
+    actual override suspend fun removeClearedEventId(eventId: String) = withContext(Dispatchers.Default) {
+        val currentIds = getClearedEventIds().toMutableSet()
+        currentIds.remove(eventId)
+        userDefaults.setObject(json.encodeToString(currentIds.toList()), forKey = KEY_CLEARED_EVENT_IDS)
+    }
+
+    actual override suspend fun clearClearedEventIds() = withContext(Dispatchers.Default) {
+        userDefaults.removeObjectForKey(KEY_CLEARED_EVENT_IDS)
     }
 }
 
