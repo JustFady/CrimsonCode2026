@@ -25,7 +25,6 @@ import org.crimsoncode2026.domain.usecases.CreateEventResult
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import org.crimsoncode2026.compose.NetworkStatusBanner
-import org.crimsoncode2026.network.NetworkInfo
 
 /**
  * Event Creation Wizard - Orchestrates all 6 wizard screens for event creation
@@ -197,21 +196,6 @@ fun EventCreationWizard(onDismiss: () -> Unit) {
                 }
             }
         }
-    }
-
-    // Error dialog
-    if (state.submitResult is CreateEventResult.Error) {
-        val errorResult = state.submitResult as CreateEventResult.Error
-        AlertDialog(
-            onDismissRequest = { viewModel.clearSubmitResult() },
-            title = { Text("Failed to Create Alert") },
-            text = { Text(errorResult.message) },
-            confirmButton = {
-                TextButton(onClick = { viewModel.clearSubmitResult() }) {
-                    Text("OK")
-                }
-            }
-        )
     }
 
     // Cleanup network monitoring when wizard is dismissed
