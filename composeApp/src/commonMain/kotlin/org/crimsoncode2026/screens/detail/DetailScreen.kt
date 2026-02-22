@@ -1,4 +1,4 @@
-package com.jetbrains.kmpapp.screens.detail
+package org.crimsoncode2026.screens.detail
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.background
@@ -35,8 +35,8 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
-import com.jetbrains.kmpapp.data.MuseumObject
-import com.jetbrains.kmpapp.screens.EmptyScreenContent
+import org.crimsoncode2026.data.MuseumObject
+import org.crimsoncode2026.screens.EmptyScreenContent
 import kmp_app_template.composeapp.generated.resources.Res
 import kmp_app_template.composeapp.generated.resources.back
 import kmp_app_template.composeapp.generated.resources.label_artist

@@ -1,12 +1,12 @@
-package com.jetbrains.kmpapp.di
+package org.crimsoncode2026.di
 
-import com.jetbrains.kmpapp.data.InMemoryMuseumStorage
-import com.jetbrains.kmpapp.data.KtorMuseumApi
-import com.jetbrains.kmpapp.data.MuseumApi
-import com.jetbrains.kmpapp.data.MuseumRepository
-import com.jetbrains.kmpapp.data.MuseumStorage
-import com.jetbrains.kmpapp.screens.detail.DetailViewModel
-import com.jetbrains.kmpapp.screens.list.ListViewModel
+import org.crimsoncode2026.data.InMemoryMuseumStorage
+import org.crimsoncode2026.data.KtorMuseumApi
+import org.crimsoncode2026.data.MuseumApi
+import org.crimsoncode2026.data.MuseumRepository
+import org.crimsoncode2026.data.MuseumStorage
+import org.crimsoncode2026.screens.detail.DetailViewModel
+import org.crimsoncode2026.screens.list.ListViewModel
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.http.ContentType

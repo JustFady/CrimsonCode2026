@@ -62,11 +62,11 @@ kotlin {
 }
 
 android {
-    namespace = "com.jetbrains.kmpapp"
+    namespace = "org.crimsoncode2026"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.jetbrains.kmpapp"
+        applicationId = "org.crimsoncode2026"
         minSdk = 24
         targetSdk = 35
         versionCode = 1

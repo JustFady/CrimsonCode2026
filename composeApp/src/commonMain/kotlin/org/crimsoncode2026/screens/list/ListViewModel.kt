@@ -1,9 +1,9 @@
-package com.jetbrains.kmpapp.screens.list
+package org.crimsoncode2026.screens.list
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.jetbrains.kmpapp.data.MuseumObject
-import com.jetbrains.kmpapp.data.MuseumRepository
+import org.crimsoncode2026.data.MuseumObject
+import org.crimsoncode2026.data.MuseumRepository
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn

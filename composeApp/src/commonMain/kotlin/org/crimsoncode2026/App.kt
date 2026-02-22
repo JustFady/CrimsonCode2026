@@ -1,4 +1,4 @@
-package com.jetbrains.kmpapp
+package org.crimsoncode2026
 
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
@@ -11,8 +11,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
-import com.jetbrains.kmpapp.screens.detail.DetailScreen
-import com.jetbrains.kmpapp.screens.list.ListScreen
+import org.crimsoncode2026.screens.detail.DetailScreen
+import org.crimsoncode2026.screens.list.ListScreen
 import kotlinx.serialization.Serializable
 
 @Serializable

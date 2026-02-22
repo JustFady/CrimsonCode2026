@@ -1,4 +1,4 @@
-package com.jetbrains.kmpapp.data
+package org.crimsoncode2026.data
 
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body

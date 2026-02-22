@@ -1,7 +1,7 @@
-package com.jetbrains.kmpapp
+package org.crimsoncode2026
 
 import android.app.Application
-import com.jetbrains.kmpapp.di.initKoin
+import org.crimsoncode2026.di.initKoin
 
 class MuseumApp : Application() {
     override fun onCreate() {

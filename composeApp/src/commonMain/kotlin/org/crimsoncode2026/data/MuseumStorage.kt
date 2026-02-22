@@ -1,4 +1,4 @@
-package com.jetbrains.kmpapp.data
+package org.crimsoncode2026.data
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow

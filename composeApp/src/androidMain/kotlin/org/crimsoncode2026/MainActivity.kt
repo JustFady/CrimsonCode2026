@@ -1,4 +1,4 @@
-package com.jetbrains.kmpapp
+package org.crimsoncode2026
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity

@@ -1,8 +1,8 @@
-package com.jetbrains.kmpapp.screens.detail
+package org.crimsoncode2026.screens.detail
 
 import androidx.lifecycle.ViewModel
-import com.jetbrains.kmpapp.data.MuseumObject
-import com.jetbrains.kmpapp.data.MuseumRepository
+import org.crimsoncode2026.data.MuseumObject
+import org.crimsoncode2026.data.MuseumRepository
 import kotlinx.coroutines.flow.Flow
 
 class DetailViewModel(private val museumRepository: MuseumRepository) : ViewModel() {
