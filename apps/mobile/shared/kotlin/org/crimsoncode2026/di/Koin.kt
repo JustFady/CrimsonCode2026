@@ -33,6 +33,7 @@ import org.crimsoncode2026.notifications.permissions.NotificationPermissionHandl
 import org.crimsoncode2026.contacts.permissions.ContactsPermissionHandler
 import org.crimsoncode2026.contacts.DeviceContactsService
 import org.crimsoncode2026.domain.usecases.AppUserDetectionUseCase
+import org.crimsoncode2026.domain.usecases.ImportContactsUseCase
 import org.crimsoncode2026.domain.usecases.FcmTokenInitializationUseCase
 import org.crimsoncode2026.notifications.FcmTokenManager
 import org.crimsoncode2026.notifications.FcmTokenRepository
@@ -78,6 +79,9 @@ val contactsModule = module {
 
     // App User Detection Use Case - matches contacts against Users table
     single { AppUserDetectionUseCase(get(), get()) }
+
+    // Import Contacts Use Case - orchestrates contact import and sync
+    single { ImportContactsUseCase(get(), get(), get()) }
 }
 
 /**
