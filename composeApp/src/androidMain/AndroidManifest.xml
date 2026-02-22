@@ -3,6 +3,19 @@
 
     <uses-permission android:name="android.permission.INTERNET"/>
 
+    <!-- Location permissions -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+
+    <!-- Contacts permission -->
+    <uses-permission android:name="android.permission.READ_CONTACTS"/>
+
+    <!-- Notifications permission -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+
+    <!-- Biometric permission -->
+    <uses-permission android:name="android.permission.USE_BIOMETRIC"/>
+
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
