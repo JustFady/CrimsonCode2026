@@ -13,6 +13,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -91,10 +92,11 @@ fun MainScreen(
     currentPhoneNumber: String = "",
     currentDeviceId: String = "",
     onNavigateToSettings: () -> Unit = {},
+    onNavigateToContacts: () -> Unit = {},
     onCreateEvent: () -> Unit = {},
     onShowEventList: () -> Unit = {}
 ) {
-    val events = remember { mutableStateListOf(*sampleEvents().toTypedArray()) }
+    val events = remember { mutableStateListOf<EventListItem>() }
     var statusMessage by remember { mutableStateOf("Loading public events...") }
     var showList by remember { mutableStateOf(false) }
     var selectedEvent by remember { mutableStateOf<EventListItem?>(null) }
@@ -119,7 +121,8 @@ fun MainScreen(
         val url = supabaseUrl.trim()
         val key = supabaseAnonKey.trim()
         if (url.isBlank() || key.isBlank() || url.contains("your-project-ref")) {
-            statusMessage = "Using sample events (Supabase credentials missing)."
+            events.clear()
+            statusMessage = "No events loaded (Supabase credentials missing)."
             return
         }
         scope.launch {
@@ -152,6 +155,21 @@ fun MainScreen(
             center = if (queryCenterLat != null && queryCenterLon != null) queryCenterLat to queryCenterLon else mapCenter,
             zoom = queryZoom
         )
+    }
+
+    // Keep the user location point updated while the map screen is open.
+    LaunchedEffect(Unit) {
+        while (true) {
+            runCatching { DeviceLocationProvider.getCurrentLocation() }
+                .getOrNull()
+                ?.let { loc ->
+                    val acc = loc.accuracyMeters
+                    if (acc == null || acc <= 1000f) {
+                        currentLocation = loc.latitude to loc.longitude
+                    }
+                }
+            delay(3000)
+        }
     }
 
     Scaffold(
@@ -198,6 +216,9 @@ fun MainScreen(
                     }) {
                         Icon(Icons.AutoMirrored.Filled.List, contentDescription = "Events")
                     }
+                    IconButton(onClick = onNavigateToContacts) {
+                        Icon(Icons.Default.Person, contentDescription = "Contacts")
+                    }
                     IconButton(onClick = onNavigateToSettings) {
                         Icon(Icons.Default.Settings, contentDescription = "Settings")
                     }
@@ -228,6 +249,7 @@ fun MainScreen(
                     mapZoom = camera.zoom
                 }
             ) {
+                UserLocationMapMarker(location = currentLocation)
                 EventMapMarkers(
                     events = events.map { it.event },
                     selectedEventId = selectedEvent?.event?.id
@@ -259,51 +281,6 @@ fun MainScreen(
                             }
                         }
                     ) { Text("-") }
-                }
-            }
-
-            Surface(
-                modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .padding(12.dp),
-                shape = RoundedCornerShape(16.dp),
-                color = Color.White.copy(alpha = 0.95f),
-                tonalElevation = 2.dp
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(8.dp)
-                            .background(Color(0xFF1B5E20), RoundedCornerShape(99.dp))
-                    )
-                    Column {
-                        Text(
-                            "Map + Events",
-                            style = MaterialTheme.typography.labelLarge,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                        Text(
-                            if (locating) "Getting location..." else statusMessage,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = Color(0xFF5F5F5F)
-                        )
-                        Text(
-                            "Center ${mapCenter?.first?.formatCoord() ?: "--"}, ${mapCenter?.second?.formatCoord() ?: "--"} | Zoom ${mapZoom.formatZoom()}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = Color(0xFF7A7A7A)
-                        )
-                        if (createMessage.isNotBlank()) {
-                            Text(
-                                createMessage,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = if (createMessage.contains("failed", true) || createMessage.contains("missing", true)) Color(0xFFB3261E) else Color(0xFF1B5E20)
-                            )
-                        }
-                    }
                 }
             }
 
@@ -408,6 +385,40 @@ fun MainScreen(
             }
         )
     }
+}
+
+@Composable
+private fun UserLocationMapMarker(location: Pair<Double, Double>?) {
+    val loc = location ?: return
+    val source = rememberGeoJsonSource(
+        data = GeoJsonData.JsonString(
+            """{"type":"FeatureCollection","features":[{"type":"Feature","geometry":{"type":"Point","coordinates":[${loc.second},${loc.first}]}}]}"""
+        ),
+        options = GeoJsonOptions(cluster = false)
+    )
+
+    CircleLayer(
+        id = "user-location-pulse",
+        source = source,
+        color = const(Color(0x3322D3EE)),
+        radius = const(16.dp)
+    )
+    CircleLayer(
+        id = "user-location-ring",
+        source = source,
+        color = const(Color.Transparent),
+        radius = const(9.dp),
+        strokeColor = const(Color(0xFF0EA5E9)),
+        strokeWidth = const(2.dp)
+    )
+    CircleLayer(
+        id = "user-location-dot",
+        source = source,
+        color = const(Color(0xFF06B6D4)),
+        radius = const(5.dp),
+        strokeColor = const(Color.White),
+        strokeWidth = const(2.dp)
+    )
 }
 
 @Composable
@@ -732,24 +743,38 @@ private class CreateEventApi {
         }
         val normalizedDeviceId = deviceId.trim().ifBlank { "android-$userId" }
 
-        val response = client.post(supabaseUrl.trimEnd('/') + "/rest/v1/users?on_conflict=id&select=id") {
+        val payload = listOf(
+            CreateUserProfileRequest(
+                id = userId,
+                phoneNumber = normalizedPhone,
+                displayName = "Responder",
+                deviceId = normalizedDeviceId,
+                platform = "ANDROID"
+            )
+        )
+
+        suspend fun postUsers(onConflict: String) = client.post(
+            supabaseUrl.trimEnd('/') + "/rest/v1/users?on_conflict=$onConflict&select=id"
+        ) {
             header("apikey", anonKey)
             header(HttpHeaders.Authorization, "Bearer $accessToken")
             header("Prefer", "resolution=merge-duplicates,return=representation")
             contentType(ContentType.Application.Json)
-            setBody(
-                listOf(
-                    CreateUserProfileRequest(
-                        id = userId,
-                        phoneNumber = normalizedPhone,
-                        displayName = "Responder",
-                        deviceId = normalizedDeviceId,
-                        platform = "ANDROID"
-                    )
-                )
-            )
+            setBody(payload)
         }
-        val body = response.bodyAsText()
+
+        var response = postUsers("id")
+        var body = response.bodyAsText()
+
+        // Some environments already have a users row for this device_id (unique constraint),
+        // so retry the upsert using device_id as the conflict target.
+        if (!response.status.value.toString().startsWith("2") &&
+            body.contains("users_device_id_key", ignoreCase = true)
+        ) {
+            response = postUsers("device_id")
+            body = response.bodyAsText()
+        }
+
         if (!response.status.value.toString().startsWith("2")) {
             throw IllegalStateException("User profile sync failed (HTTP ${response.status.value}): ${extractSupabaseError(body)}")
         }

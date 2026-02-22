@@ -45,6 +45,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
@@ -65,8 +66,16 @@ private enum class AppShellScreen {
     PhoneEntry,
     OtpVerify,
     MainMap,
+    Contacts,
     Settings
 }
+
+private data class ShellContact(
+    val id: String,
+    val displayName: String,
+    val phoneNumber: String,
+    val hasApp: Boolean
+)
 
 @Composable
 fun App() {
@@ -80,6 +89,14 @@ fun App() {
     var useRealAuth by rememberSaveable { mutableStateOf(true) }
     var sessionAccessToken by rememberSaveable { mutableStateOf("") }
     var sessionUserId by rememberSaveable { mutableStateOf("") }
+    val contacts = remember {
+        mutableStateListOf(
+            ShellContact("c1", "Alice Nguyen", "+12065550101", hasApp = true),
+            ShellContact("c2", "Ben Carter", "+12065550102", hasApp = false),
+            ShellContact("c3", "Maya Patel", "+14255550103", hasApp = true)
+        )
+    }
+    var selectedContactIds by remember { mutableStateOf(setOf<String>()) }
     val runtimeSupabaseUrl = RuntimeSecrets.supabaseUrl()
         .takeUnless { it.isBlank() || it == "https://your-project-ref.supabase.co" }
         ?: ""
@@ -187,11 +204,55 @@ fun App() {
                     currentPhoneNumber = phone.trim(),
                     currentDeviceId = runtimeDeviceId,
                     onNavigateToSettings = { screen = AppShellScreen.Settings },
+                    onNavigateToContacts = { screen = AppShellScreen.Contacts },
                     onCreateEvent = {
                         diagnosticsMessage = "Event creation wizard is not restored yet."
                     },
                     onShowEventList = {
                         diagnosticsMessage = "Event list is not restored yet."
+                    }
+                )
+
+                AppShellScreen.Contacts -> ContactSelectionShell(
+                    contacts = contacts,
+                    selectedContactIds = selectedContactIds,
+                    onBack = { screen = AppShellScreen.MainMap },
+                    onSave = { ids ->
+                        selectedContactIds = ids
+                        diagnosticsMessage = "Saved ${ids.size} contact(s) for private alerts."
+                        screen = AppShellScreen.MainMap
+                    },
+                    onAddContact = { name, rawPhone ->
+                        val phoneDigits = rawPhone.filter { it.isDigit() }
+                        val normalized = when {
+                            rawPhone.trim().startsWith("+") -> rawPhone.trim()
+                            phoneDigits.length == 10 -> "+1$phoneDigits"
+                            phoneDigits.length == 11 && phoneDigits.startsWith("1") -> "+$phoneDigits"
+                            else -> rawPhone.trim()
+                        }
+                        val safeName = name.trim().ifBlank { "Contact ${contacts.size + 1}" }
+                        if (normalized.isBlank()) {
+                            diagnosticsMessage = "Contact phone number is required."
+                            return@ContactSelectionShell
+                        }
+                        val existing = contacts.firstOrNull { it.phoneNumber == normalized }
+                        if (existing != null) {
+                            selectedContactIds = selectedContactIds + existing.id
+                            diagnosticsMessage = "Contact already exists. Selected ${existing.displayName}."
+                            return@ContactSelectionShell
+                        }
+                        val id = "c-${contacts.size + 1}-${System.currentTimeMillis()}"
+                        contacts.add(
+                            0,
+                            ShellContact(
+                                id = id,
+                                displayName = safeName,
+                                phoneNumber = normalized,
+                                hasApp = normalized.endsWith("01") || normalized.endsWith("03") || normalized.endsWith("58")
+                            )
+                        )
+                        selectedContactIds = selectedContactIds + id
+                        diagnosticsMessage = "Added and selected $safeName."
                     }
                 )
 
@@ -212,6 +273,149 @@ fun App() {
 }
 
 @Composable
+private fun ContactSelectionShell(
+    contacts: List<ShellContact>,
+    selectedContactIds: Set<String>,
+    onBack: () -> Unit,
+    onSave: (Set<String>) -> Unit,
+    onAddContact: (name: String, phone: String) -> Unit
+) {
+    var search by rememberSaveable { mutableStateOf("") }
+    var showOnlyAppUsers by rememberSaveable { mutableStateOf(false) }
+    var draftName by rememberSaveable { mutableStateOf("") }
+    var draftPhone by rememberSaveable { mutableStateOf("") }
+    var localSelected by remember(selectedContactIds) { mutableStateOf(selectedContactIds) }
+
+    val filtered = contacts
+        .filter { c ->
+            val matchesSearch = search.isBlank() ||
+                c.displayName.contains(search, ignoreCase = true) ||
+                c.phoneNumber.contains(search)
+            val matchesApp = !showOnlyAppUsers || c.hasApp
+            matchesSearch && matchesApp
+        }
+        .sortedWith(compareBy<ShellContact> { !it.hasApp }.thenBy { it.displayName.lowercase() })
+
+    ShellScreenFrame {
+        CardBlock("Filters") {
+            OutlinedTextField(
+                value = search,
+                onValueChange = { search = it },
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("Search contacts") },
+                singleLine = true
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("Only contacts with app")
+                Switch(checked = showOnlyAppUsers, onCheckedChange = { showOnlyAppUsers = it })
+            }
+            Text(
+                "${localSelected.size} selected",
+                style = MaterialTheme.typography.bodySmall,
+                color = Color(0xFF5F5F5F)
+            )
+        }
+
+        CardBlock("Add Contact") {
+            OutlinedTextField(
+                value = draftName,
+                onValueChange = { draftName = it },
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("Name") },
+                singleLine = true
+            )
+            OutlinedTextField(
+                value = draftPhone,
+                onValueChange = { draftPhone = it },
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("Phone") },
+                placeholder = { Text("+1 555 123 4567") },
+                singleLine = true
+            )
+            Button(
+                onClick = {
+                    onAddContact(draftName, draftPhone)
+                    draftName = ""
+                    draftPhone = ""
+                },
+                enabled = draftPhone.isNotBlank(),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Add & Select")
+            }
+        }
+
+        CardBlock("Contacts") {
+            if (filtered.isEmpty()) {
+                Text(
+                    "No contacts found. Add one manually to continue.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color(0xFF5F5F5F)
+                )
+            } else {
+                filtered.forEach { contact ->
+                    val selected = contact.id in localSelected
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(
+                                if (selected) Color(0xFFE8F5E9) else Color(0xFFF7F7F7),
+                                RoundedCornerShape(12.dp)
+                            )
+                            .padding(horizontal = 12.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column {
+                            Text(contact.displayName, fontWeight = FontWeight.SemiBold)
+                            Text(
+                                contact.phoneNumber,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Color(0xFF5F5F5F)
+                            )
+                            Text(
+                                if (contact.hasApp) "Has app" else "SMS only",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = if (contact.hasApp) Color(0xFF1B5E20) else Color(0xFF8A5A00)
+                            )
+                        }
+                        Button(
+                            onClick = {
+                                localSelected = if (selected) {
+                                    localSelected - contact.id
+                                } else {
+                                    localSelected + contact.id
+                                }
+                            },
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
+                        ) {
+                            Text(if (selected) "Selected" else "Select")
+                        }
+                    }
+                    Spacer(Modifier.height(6.dp))
+                }
+            }
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            TextButton(onClick = onBack, modifier = Modifier.weight(1f)) {
+                Text("Back")
+            }
+            Button(onClick = { onSave(localSelected) }, modifier = Modifier.weight(1f)) {
+                Text("Save Contacts")
+            }
+        }
+    }
+}
+
+@Composable
 private fun PhoneEntryShell(
     phone: String,
     onPhoneChange: (String) -> Unit,
@@ -223,7 +427,6 @@ private fun PhoneEntryShell(
     onContinue: () -> Unit
 ) {
     ShellScreenFrame {
-        HeroPanel("CrimsonCode2026", "Sign in to the emergency response client")
         CardBlock("Phone Login") {
             Text(
                 "Use shell mode or real Supabase OTP auth. Configure Supabase URL and anon key in Settings.",
@@ -269,7 +472,6 @@ private fun PhoneEntryShell(
             Spacer(Modifier.height(8.dp))
             AuthMessageBanner(authMessage)
         }
-        ModuleCard("Recovery Status", "App shell is running. Auth backend integration is next.")
     }
 }
 
@@ -285,7 +487,6 @@ private fun OtpShell(
     onVerify: () -> Unit
 ) {
     ShellScreenFrame {
-        HeroPanel("OTP Verification", "Simulated shell flow")
         CardBlock("Verify Code") {
             Text(
                 if (useRealAuth) {
@@ -551,7 +752,6 @@ private fun SettingsShell(
     onBack: () -> Unit
 ) {
     ShellScreenFrame {
-        HeroPanel("Settings", "Local shell preferences")
         CardBlock("Profile") {
             OutlinedTextField(
                 value = displayName,
