@@ -32,7 +32,9 @@ import org.crimsoncode2026.location.LocationState
 import org.crimsoncode2026.notifications.permissions.NotificationPermissionHandler
 import org.crimsoncode2026.contacts.permissions.ContactsPermissionHandler
 import org.crimsoncode2026.contacts.DeviceContactsService
+import org.crimsoncode2026.domain.usecases.AppUserDetectionUseCase
 import org.crimsoncode2026.notifications.FcmTokenManager
+import org.crimsoncode2026.notifications.FcmTokenRepository
 import io.github.mirzemehdi.kmpnotifier.KmpNotifier
 import org.crimsoncode2026.location.IpGeolocationService
 import org.crimsoncode2026.storage.SecureStorage
@@ -58,6 +60,9 @@ val notificationsModule = module {
 
     // FCM Token Manager - handles token retrieval and caching
     single { FcmTokenManager(get(), get()) }
+
+    // FCM Token Repository - coordinates FCM token lifecycle
+    single { FcmTokenRepository(get(), get()) }
 }
 
 val contactsModule = module {
@@ -66,6 +71,9 @@ val contactsModule = module {
 
     // Device Contacts Service - imports device contacts using Kontacts library
     single { DeviceContactsService() }
+
+    // App User Detection Use Case - matches contacts against Users table
+    single { AppUserDetectionUseCase(get(), get()) }
 }
 
 /**
