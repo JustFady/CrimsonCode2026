@@ -33,6 +33,7 @@ import org.crimsoncode2026.notifications.permissions.NotificationPermissionHandl
 import org.crimsoncode2026.contacts.permissions.ContactsPermissionHandler
 import org.crimsoncode2026.contacts.DeviceContactsService
 import org.crimsoncode2026.domain.usecases.AppUserDetectionUseCase
+import org.crimsoncode2026.domain.usecases.FcmTokenInitializationUseCase
 import org.crimsoncode2026.notifications.FcmTokenManager
 import org.crimsoncode2026.notifications.FcmTokenRepository
 import io.github.mirzemehdi.kmpnotifier.KmpNotifier
@@ -63,6 +64,9 @@ val notificationsModule = module {
 
     // FCM Token Repository - coordinates FCM token lifecycle
     single { FcmTokenRepository(get(), get()) }
+
+    // FCM Token Initialization Use Case - handles token refresh on app launch
+    single { FcmTokenInitializationUseCase(get(), get()) }
 }
 
 val contactsModule = module {
