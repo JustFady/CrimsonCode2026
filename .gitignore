@@ -21,6 +21,10 @@ captures
 .env.local
 DATABASE_URL
 
+# App-specific local properties
+**/androidApp/local.properties
+**/local.properties
+
 # Supabase
 .supabase/
 

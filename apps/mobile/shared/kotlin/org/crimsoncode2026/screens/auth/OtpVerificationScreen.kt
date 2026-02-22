@@ -1,5 +1,6 @@
 package org.crimsoncode2026.screens.auth
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -9,13 +10,21 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Phone
+import androidx.compose.material.icons.filled.Sms
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
@@ -27,14 +36,19 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 
 private const val RESEND_DELAY_SECONDS = 30
+private val PRIMARY_COLOR = Color(0xFFDC2626) // Red for emergency theme
+private val SURFACE_COLOR = Color(0xFFF8FAFC)
 
 /**
  * Result of OTP verification attempt
@@ -51,6 +65,7 @@ sealed class OtpVerificationResult {
  * @param onVerify Suspended callback when user submits OTP code - returns verification result
  * @param onResend Callback when user requests resend OTP
  * @param onBack Callback when user navigates back
+ * @param onVerificationSuccess Callback when verification succeeds
  */
 @Composable
 fun OtpVerificationScreen(
@@ -80,32 +95,74 @@ fun OtpVerificationScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(32.dp),
+            .background(Color.White),
         contentAlignment = Alignment.Center
     ) {
         Column(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Text(
-                text = "Enter Verification Code",
-                style = MaterialTheme.typography.headlineMedium
-            )
+            // Back button at top
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Start
+            ) {
+                IconButton(onClick = onBack, enabled = !isLoading) {
+                    Icon(
+                        imageVector = Icons.Default.Phone,
+                        contentDescription = "Back",
+                        tint = Color(0xFF64748B)
+                    )
+                }
+            }
 
             Spacer(modifier = Modifier.height(16.dp))
 
+            // Icon Section
+            Surface(
+                modifier = Modifier.size(80.dp),
+                shape = RoundedCornerShape(20.dp),
+                color = PRIMARY_COLOR
+            ) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Sms,
+                        contentDescription = "SMS Icon",
+                        tint = Color.White,
+                        modifier = Modifier.size(40.dp)
+                    )
+                }
+            }
+
+            // Title
+            Text(
+                text = "Verify Your Number",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+                color = Color.Black
+            )
+
+            // Instructions
             Text(
                 text = "We sent a 6-digit code to",
-                style = MaterialTheme.typography.bodyLarge
+                style = MaterialTheme.typography.bodyLarge,
+                color = Color(0xFF64748B)
             )
 
             Text(
                 text = maskedPhone,
-                style = MaterialTheme.typography.bodyLarge
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = Color(0xFF1E293B)
             )
 
-            Spacer(modifier = Modifier.height(48.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
             // OTP Input Field
             OutlinedTextField(
@@ -124,40 +181,55 @@ fun OtpVerificationScreen(
                 label = { Text("Verification Code") },
                 placeholder = { Text("000000") },
                 isError = error != null,
-                supportingText = { error?.let { Text(it) } },
+                supportingText = { error?.let { Text(it, color = Color(0xFFDC2626)) } },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
-                textAlign = TextAlign.Center
+                textAlign = TextAlign.Center,
+                colors = TextFieldDefaults.colors(
+                    focusedContainerColor = SURFACE_COLOR,
+                    unfocusedContainerColor = SURFACE_COLOR,
+                    errorContainerColor = Color(0xFFFEF2F2),
+                    focusedIndicatorColor = PRIMARY_COLOR,
+                    unfocusedIndicatorColor = Color(0xFFCBD5E1),
+                    errorIndicatorColor = Color(0xFFDC2626)
+                )
             )
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+            // Verify Button
+            Button(
+                onClick = {
+                    if (otpValue.text.length == 6) {
+                        isLoading = true
+                        error = null
+                    } else {
+                        error = "Please enter 6-digit code"
+                    }
+                },
+                enabled = !isLoading && otpValue.text.length == 6,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = PRIMARY_COLOR,
+                    disabledContainerColor = PRIMARY_COLOR.copy(alpha = 0.5f)
+                )
             ) {
-                OutlinedButton(
-                    onClick = onBack,
-                    enabled = !isLoading
-                ) {
-                    Text("Back")
-                }
-
-                Button(
-                    onClick = {
-                        if (otpValue.text.length == 6) {
-                            isLoading = true
-                            error = null
-                        } else {
-                            error = "Please enter the 6-digit code"
-                        }
-                    },
-                    enabled = !isLoading && otpValue.text.length == 6,
-                    modifier = Modifier.width(160.dp)
-                ) {
-                    Text(if (isLoading) "Verifying..." else "Verify")
+                if (isLoading) {
+                    Text(
+                        "Verifying...",
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                } else {
+                    Text(
+                        "Verify",
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.SemiBold
+                    )
                 }
             }
 
@@ -176,8 +248,9 @@ fun OtpVerificationScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
+            // Resend Button
             Button(
                 onClick = {
                     countdown = RESEND_DELAY_SECONDS
@@ -185,9 +258,16 @@ fun OtpVerificationScreen(
                     onResend()
                 },
                 enabled = canResend && !isLoading,
-                colors = ButtonDefaults.outlinedButtonColors()
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    contentColor = PRIMARY_COLOR
+                )
             ) {
-                Text(if (canResend) "Resend Code" else "Resend in ${countdown}s")
+                Text(
+                    if (canResend) "Resend Code" else "Resend in ${countdown}s",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = if (canResend) PRIMARY_COLOR else Color(0xFF94A3B8)
+                )
             }
         }
     }
