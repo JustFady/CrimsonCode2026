@@ -29,6 +29,7 @@ import org.crimsoncode2026.domain.usecases.RegisterFcmTokenUseCase
 import org.crimsoncode2026.domain.usecases.GetReceivedEventsUseCase
 import org.crimsoncode2026.domain.usecases.MarkEventOpenedUseCase
 import org.crimsoncode2026.domain.usecases.SubscribeToPrivateEventsUseCase
+import org.crimsoncode2026.domain.usecases.CreatePrivateEventWithRecipientsUseCase
 import org.crimsoncode2026.location.LocationRepository
 import org.crimsoncode2026.location.permissions.LocationPermissionHandler
 import org.crimsoncode2026.location.LocationState
@@ -164,6 +165,7 @@ val authModule = module {
     single { GetReceivedEventsUseCase(get(), get(), get(), get()) }
     single { MarkEventOpenedUseCase(get(), get()) }
     single { SubscribeToPrivateEventsUseCase(get(), get()) }
+    single { CreatePrivateEventWithRecipientsUseCase(get(), get(), get(), get(), get()) }
 }
 
 /**
