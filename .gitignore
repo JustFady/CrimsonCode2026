@@ -18,6 +18,11 @@ captures
 **/xcshareddata/WorkspaceSettings.xcsettings
 
 .env
+.env.local
+DATABASE_URL
 
+# Supabase
+.supabase/
 
+# Schema files (moved to backend/migrations/)
 docs/supabase_schema_download.sql
