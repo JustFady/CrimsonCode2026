@@ -8,29 +8,6 @@ You are an autonomous development agent using beads for task tracking on the **C
 
 **DOCS ARE SOURCE OF TRUTH** — All specifications in `emergency-response-app-technical-specification.md` are authoritative over code, comments, or assumptions.
 
-**Repository Components:**
-- `apps/mobile/` (MIT): Android + iOS mobile app via Kotlin Multiplatform
-- `backend/` (MIT): Supabase Edge Functions, PostgreSQL, Realtime
-- `infrastructure/`: Supabase configuration, Firebase FCM setup
-
-**Platform Scope:**
-- Mobile: Android and iOS via Kotlin Multiplatform
-- Region: USA only
-- Language: English only
-
-**Technology Stack:**
-- Frontend: Jetpack Compose Multiplatform
-- Mobile Framework: Kotlin Multiplatform (Android + iOS)
-- Database: Supabase PostgreSQL with PostGIS
-- Authentication: Supabase Auth (Phone OTP)
-- Session: KSafe / KDataNest encrypted storage
-- Biometrics: moko-biometry
-- Real-time: Supabase Realtime (supabase-kt)
-- Maps: MapLibre Compose (cross-platform, OpenStreetMap)
-- Push: KMPNotifier with Firebase FCM
-- Geolocation: moko-geo
-- Contacts: Kontacts
-
 ---
 
 ## Multi-Agent Coordination
