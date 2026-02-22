@@ -26,6 +26,7 @@ import org.crimsoncode2026.domain.usecases.UpdateDisplayNameUseCase
 import org.crimsoncode2026.domain.usecases.UpdateFcmTokenUseCase
 import org.crimsoncode2026.domain.usecases.UpdateLastActiveUseCase
 import org.crimsoncode2026.domain.usecases.RegisterFcmTokenUseCase
+import org.crimsoncode2026.domain.usecases.GetReceivedEventsUseCase
 import org.crimsoncode2026.location.LocationRepository
 import org.crimsoncode2026.location.permissions.LocationPermissionHandler
 import org.crimsoncode2026.location.LocationState
@@ -155,6 +156,9 @@ val authModule = module {
 
     // User Session Manager
     single { UserSessionManager(get(), get()) }
+
+    // Events Use Cases
+    single { GetReceivedEventsUseCase(get(), get(), get(), get()) }
 }
 
 fun initKoin() {
