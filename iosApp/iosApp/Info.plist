@@ -22,6 +22,22 @@
 	<true/>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
+
+	<!-- Location Usage Description -->
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>This app needs access to your location when in use for emergency response.</string>
+
+	<!-- Contacts Usage Description -->
+	<key>NSContactsUsageDescription</key>
+	<string>This app needs access to your contacts to manage emergency contacts.</string>
+
+	<!-- Notifications Usage Description -->
+	<key>NSUserNotificationsUsageDescription</key>
+	<string>This app needs permission to send you emergency alert notifications.</string>
+
+	<!-- Biometric Usage Description -->
+	<key>NSFaceIDUsageDescription</key>
+	<string>This app uses biometric authentication to securely access your account.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
