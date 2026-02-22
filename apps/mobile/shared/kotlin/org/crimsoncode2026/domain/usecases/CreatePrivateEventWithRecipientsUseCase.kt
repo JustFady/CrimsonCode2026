@@ -106,7 +106,7 @@ class CreatePrivateEventWithRecipientsUseCase(
 
         for (contact in selectedContacts) {
             // Skip contacts that don't have a registered user
-            if (contact.contactUserId != null) {
+            if (contact.contactUserId == null) {
                 continue
             }
 
