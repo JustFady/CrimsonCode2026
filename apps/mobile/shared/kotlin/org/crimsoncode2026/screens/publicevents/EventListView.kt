@@ -16,11 +16,14 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.lazy.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Event
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -36,14 +39,17 @@ import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberTopAppBarState
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import org.crimsoncode2026.data.Event
@@ -56,7 +62,7 @@ import java.util.Date
 import java.util.Locale
 
 /**
- * Event item in the list with event preview
+ * Event item in list with event preview
  */
 data class EventListItem(
     val event: Event,
@@ -77,10 +83,7 @@ data class EventListItem(
  * @param events List of events to display with creator info for private events
  * @param onEventClick Callback when user taps an event
  * @param onClearAll Callback when user taps Clear All button
- * @param onDismiss Callback when user dismisses the list view
- * @param selectedSeverity Selected severity filter (null = show all)
- * @param selectedCategory Selected category filter (null = show all)
- * @param selectedBroadcastType Selected broadcast type filter (null = show all)
+ * @param onDismiss Callback when user dismisses list view
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -88,13 +91,15 @@ fun EventListView(
     events: List<EventListItem>,
     onEventClick: (Event) -> Unit = {},
     onClearAll: () -> Unit = {},
-    onDismiss: () -> Unit = {},
-    selectedSeverity: Severity? = null,
-    selectedCategory: Category? = null,
-    selectedBroadcastType: BroadcastType? = null
+    onDismiss: () -> Unit = {}
 ) {
     val scrollState = rememberLazyListState()
     val topAppBarState = rememberTopAppBarState()
+
+    // Local filter state management
+    var selectedSeverity by remember { mutableStateOf<Severity?>(null) }
+    var selectedCategory by remember { mutableStateOf<Category?>(null) }
+    var selectedBroadcastType by remember { mutableStateOf<BroadcastType?>(null) }
 
     // Filter events based on selected filters
     val privateEvents = events.filter { item ->
@@ -145,13 +150,13 @@ fun EventListView(
                 selectedSeverity = selectedSeverity,
                 selectedCategory = selectedCategory,
                 selectedBroadcastType = selectedBroadcastType,
-                onSeveritySelected = { /* TODO: Update filter state */ },
-                onCategorySelected = { /* TODO: Update filter state */ },
-                onBroadcastTypeSelected = { /* TODO: Update filter state */ }
+                onSeveritySelected = { selectedSeverity = it },
+                onCategorySelected = { selectedCategory = it },
+                onBroadcastTypeSelected = { selectedBroadcastType = it }
             )
 
             // Event list
-            if (events.isEmpty()) {
+            if (privateEvents.isEmpty() && publicEvents.isEmpty()) {
                 EmptyEventsList(
                     modifier = Modifier.weight(1f)
                 )
@@ -398,7 +403,7 @@ private fun EventListItemCard(
                         Spacer(modifier = Modifier.width(8.dp))
                     } else if (event.isPublic) {
                         Icon(
-                            imageVector = androidx.compose.material.icons.filled.Person,
+                            imageVector = Icons.Default.Person,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.size(16.dp)
@@ -422,7 +427,7 @@ private fun EventListItemCard(
 
             // Chevron icon
             Icon(
-                imageVector = androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight,
+                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.outline
             )
@@ -431,7 +436,7 @@ private fun EventListItemCard(
 }
 
 /**
- * Empty state when no events are in the list
+ * Empty state when no events are in list
  */
 @Composable
 private fun EmptyEventsList(modifier: Modifier = Modifier) {
@@ -490,10 +495,10 @@ private fun formatTimestamp(timestamp: Long): String {
 /**
  * Get color for severity
  */
-private fun severityColor(severity: org.crimsoncode2026.data.Severity?): androidx.compose.ui.graphics.Color {
+private fun severityColor(severity: Severity?): androidx.compose.ui.graphics.Color {
     return when (severity) {
-        org.crimsoncode2026.data.Severity.ALERT -> androidx.compose.ui.graphics.Color(0xFFF97316) // Orange
-        org.crimsoncode2026.data.Severity.CRISIS -> androidx.compose.ui.graphics.Color(0xFFDC2626) // Red
+        Severity.ALERT -> androidx.compose.ui.graphics.Color(0xFFF97316) // Orange
+        Severity.CRISIS -> androidx.compose.ui.graphics.Color(0xFFDC2626) // Red
         null -> MaterialTheme.colorScheme.outline
     }
 }
@@ -501,7 +506,7 @@ private fun severityColor(severity: org.crimsoncode2026.data.Severity?): android
 /**
  * Filter chips row
  *
- * Horizontal scrollable row of filter chips for severity, category, and broadcast type
+ * Horizontal/vertical stack of segmented buttons for severity, category, and broadcast type
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -513,26 +518,26 @@ private fun FilterChipsRow(
     onCategorySelected: (Category?) -> Unit = {},
     onBroadcastTypeSelected: (BroadcastType?) -> Unit = {}
 ) {
-    Row(
+    Column(
         modifier = Modifier
-            .horizontalScroll(rememberScrollState())
+            .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(4.dp)
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        // Severity filter chip
-        SeverityFilterChip(
+        // Severity filter
+        SeverityFilterRow(
             selected = selectedSeverity,
             onSelected = onSeveritySelected
         )
 
-        // Category filter chip
-        CategoryFilterChip(
+        // Category filter
+        CategoryFilterRow(
             selected = selectedCategory,
             onSelected = onCategorySelected
         )
 
-        // Broadcast type filter chip
-        BroadcastTypeFilterChip(
+        // Broadcast type filter
+        BroadcastTypeFilterRow(
             selected = selectedBroadcastType,
             onSelected = onBroadcastTypeSelected
         )
@@ -540,49 +545,149 @@ private fun FilterChipsRow(
 }
 
 /**
- * Severity filter chip
+ * Severity filter row using SegmentedButton
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun SeverityFilterChip(
+private fun SeverityFilterRow(
     selected: Severity?,
     onSelected: (Severity?) -> Unit = {}
 ) {
-    FilterChip(
-        selected = selected != null,
-        onClick = { onSelected(if (selected == null) null else null) },
-        label = "Severity"
-    )
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = "Severity:",
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.padding(end = 8.dp),
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            SegmentedButton(
+                selected = selected == null,
+                onClick = { onSelected(null) },
+                shape = SegmentedButtonDefaults.itemShape(0, 3),
+                icon = {}
+            ) {
+                Text("All", style = MaterialTheme.typography.labelSmall)
+            }
+            SegmentedButton(
+                selected = selected == Severity.ALERT,
+                onClick = { onSelected(Severity.ALERT) },
+                shape = SegmentedButtonDefaults.itemShape(1, 3),
+                icon = {}
+            ) {
+                Text("Alert", style = MaterialTheme.typography.labelSmall)
+            }
+            SegmentedButton(
+                selected = selected == Severity.CRISIS,
+                onClick = { onSelected(Severity.CRISIS) },
+                shape = SegmentedButtonDefaults.itemShape(2, 3),
+                icon = {}
+            ) {
+                Text("Crisis", style = MaterialTheme.typography.labelSmall)
+            }
+        }
+    }
 }
 
 /**
- * Category filter chip
+ * Category filter row - simplified for hackathon MVP with "All" + top categories
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun CategoryFilterChip(
+private fun CategoryFilterRow(
     selected: Category?,
     onSelected: (Category?) -> Unit = {}
 ) {
-    FilterChip(
-        selected = selected != null,
-        onClick = { onSelected(if (selected == null) null else null) },
-        label = "Category"
-    )
+    Column {
+        Text(
+            text = "Category:",
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.padding(horizontal = 0.dp, vertical = 4.dp),
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            val topCategories = listOf(
+                null,
+                Category.MEDICAL,
+                Category.FIRE,
+                Category.WEATHER,
+                Category.CRIME,
+                Category.TRAFFIC,
+                Category.OTHER
+            )
+            topCategories.forEachIndexed { index, category ->
+                SegmentedButton(
+                    selected = selected == category,
+                    onClick = { onSelected(category) },
+                    shape = SegmentedButtonDefaults.itemShape(index, topCategories.size),
+                    icon = {}
+                ) {
+                    Text(
+                        text = category?.displayName ?: "All",
+                        style = MaterialTheme.typography.labelSmall
+                    )
+                }
+            }
+        }
+    }
 }
 
 /**
- * Broadcast type filter chip
+ * Broadcast type filter row using SegmentedButton
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun BroadcastTypeFilterChip(
+private fun BroadcastTypeFilterRow(
     selected: BroadcastType?,
     onSelected: (BroadcastType?) -> Unit = {}
 ) {
-    FilterChip(
-        selected = selected != null,
-        onClick = { onSelected(if (selected == null) null else null) },
-        label = "Broadcast"
-    )
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = "Broadcast:",
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.padding(end = 8.dp),
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            SegmentedButton(
+                selected = selected == null,
+                onClick = { onSelected(null) },
+                shape = SegmentedButtonDefaults.itemShape(0, 3),
+                icon = {}
+            ) {
+                Text("All", style = MaterialTheme.typography.labelSmall)
+            }
+            SegmentedButton(
+                selected = selected == BroadcastType.PUBLIC,
+                onClick = { onSelected(BroadcastType.PUBLIC) },
+                shape = SegmentedButtonDefaults.itemShape(1, 3),
+                icon = {}
+            ) {
+                Text("Public", style = MaterialTheme.typography.labelSmall)
+            }
+            SegmentedButton(
+                selected = selected == BroadcastType.PRIVATE,
+                onClick = { onSelected(BroadcastType.PRIVATE) },
+                shape = SegmentedButtonDefaults.itemShape(2, 3),
+                icon = {}
+            ) {
+                Text("Private", style = MaterialTheme.typography.labelSmall)
+            }
+        }
+    }
 }

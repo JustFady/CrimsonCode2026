@@ -30,6 +30,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.EventNote
 import org.crimsoncode2026.compose.MapView
 import org.crimsoncode2026.compose.EventMarkers
+import org.crimsoncode2026.compose.UserLocationMarker
 import org.crimsoncode2026.location.LocationPermissionHandler
 import org.crimsoncode2026.location.LocationData
 import org.crimsoncode2026.screens.publicevents.EventDetailsPanel
@@ -137,6 +138,15 @@ fun MainScreen(
                 },
                 targetZoom = state.cameraPosition?.zoom
             ) {
+                // User location marker with accuracy circle (MVP: centered overlay)
+                state.userLocation?.let { location ->
+                    UserLocationMarker(
+                        latitude = location.latitude,
+                        longitude = location.longitude,
+                        accuracyInMeters = location.accuracyMeters
+                    )
+                }
+
                 // Event markers layer
                 EventMarkers(
                     events = state.loadedEvents.map { it.event },
