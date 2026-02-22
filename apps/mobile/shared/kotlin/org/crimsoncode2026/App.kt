@@ -154,12 +154,25 @@ fun App() {
 
                 // Main app screen
                 composable<MainDestination> {
-                    MainScreen()
+                    MainScreen(
+                        onNavigateToSettings = {
+                            navController.navigate(SettingsDestination)
+                        }
+                    )
                 }
 
                 // Settings screen
                 composable<SettingsDestination> {
-                    SettingsScreen()
+                    SettingsScreen(
+                        onNavigateBack = {
+                            navController.popBackStack()
+                        },
+                        onNavigateToLogin = {
+                            navController.navigate(PhoneEntryDestination) {
+                                popUpTo(MainDestination) { inclusive = true }
+                            }
+                        }
+                    )
                 }
             }
         }
