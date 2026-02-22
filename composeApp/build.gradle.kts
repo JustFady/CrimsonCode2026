@@ -33,6 +33,7 @@ kotlin {
             implementation(libs.androidx.compose.ui.tooling.preview)
             implementation(libs.androidx.activity.compose)
             implementation(libs.ktor.client.okhttp)
+            implementation(libs.play.services.location)
         }
         iosMain.dependencies {
             implementation(libs.ktor.client.darwin)
@@ -59,6 +60,11 @@ kotlin {
             implementation(libs.koin.compose.viewmodel)
 
             implementation(libs.maplibre.compose)
+
+            implementation(libs.moko.geo)
+            implementation(libs.moko.geo.compose)
+            implementation(libs.moko.permissions)
+            implementation(libs.moko.permissions.location)
         }
     }
 }
