@@ -54,6 +54,24 @@ class NotificationPresenter(
         const val KEY_DEEP_LINK = "deep_link"
         const val KEY_VIEW_ON_MAP = "view_on_map"
         const val KEY_CHANNEL_ID = "channel_id"
+
+        /**
+         * iOS-specific payload keys
+         */
+        const val KEY_IOS_SOUND = "sound"
+        const val KEY_IOS_INTERRUPTION_LEVEL = "interruption-level"
+
+        /**
+         * Sound names for iOS severity-based notifications
+         */
+        const val IOS_SOUND_CRISIS = "critical_notification.wav"
+        const val IOS_SOUND_ALERT = "default"
+
+        /**
+         * iOS interruption levels
+         */
+        const val IOS_INTERRUPTION_LEVEL_CRITICAL = "critical"
+        const val IOS_INTERRUPTION_LEVEL_ACTIVE = "active"
     }
 
     /**
@@ -104,7 +122,8 @@ class NotificationPresenter(
     /**
      * Build payload data map for notification
      *
-     * Includes event_id, coordinates, severity, category, deep link URL, and channel ID
+     * Includes event_id, coordinates, severity, category, deep link URL, channel ID,
+     * and iOS-specific severity styling (sound, interruption level)
      *
      * @param options Notification configuration
      * @return Map of payload data
@@ -115,6 +134,10 @@ class NotificationPresenter(
             put(KEY_SEVERITY, options.severity.value)
             put(KEY_CATEGORY, options.category)
             put(KEY_CHANNEL_ID, NotificationChannelProvider.getChannelId(options.severity == Severity.CRISIS))
+
+            // iOS-specific severity-based configuration
+            put(KEY_IOS_SOUND, if (options.severity == Severity.CRISIS) IOS_SOUND_CRISIS else IOS_SOUND_ALERT)
+            put(KEY_IOS_INTERRUPTION_LEVEL, if (options.severity == Severity.CRISIS) IOS_INTERRUPTION_LEVEL_CRITICAL else IOS_INTERRUPTION_LEVEL_ACTIVE)
 
             if (options.lat != null && options.lon != null) {
                 put(KEY_LAT, options.lat)

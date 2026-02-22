@@ -25,6 +25,21 @@ object NotificationChannelInitializer {
     const val CHANNEL_ALERTS = "alerts"
 
     /**
+     * Light colors for severity-based styling
+     */
+    private const val COLOR_CRISIS = 0xFFFF0000.toInt() // Red
+    private const val COLOR_ALERT = 0xFFFFA500.toInt() // Orange
+
+    /**
+     * Vibration patterns
+     *
+     * Crisis: Aggressive pattern - short, short, short, long repeat
+     * Alert: Standard pattern - single long vibration
+     */
+    private val VIBRATION_PATTERN_CRISIS = longArrayOf(0, 100, 100, 100, 100, 500)
+    private val VIBRATION_PATTERN_ALERT = longArrayOf(0, 500)
+
+    /**
      * Channel names (shown to users in Settings)
      */
     private const val CHANNEL_NAME_EMERGENCY_ALERTS = "Emergency Alerts"
@@ -66,6 +81,8 @@ object NotificationChannelInitializer {
      * Importance: HIGH
      * - Makes sound and appears on screen
      * - Can interrupt user with sound/vibration
+     * - Red light color for visual indicator
+     * - Aggressive vibration pattern for urgency
      */
     private fun createEmergencyAlertsChannel(notificationManager: NotificationManager) {
         val channel = NotificationChannel(
@@ -75,7 +92,9 @@ object NotificationChannelInitializer {
         ).apply {
             description = CHANNEL_DESC_EMERGENCY_ALERTS
             enableLights(true)
+            lightColor = COLOR_CRISIS
             enableVibration(true)
+            vibrationPattern = VIBRATION_PATTERN_CRISIS
         }
 
         notificationManager.createNotificationChannel(channel)
@@ -87,6 +106,8 @@ object NotificationChannelInitializer {
      * Importance: DEFAULT
      * - Makes sound but does not visually interrupt
      * - Shows in notification shade
+     * - Orange light color for visual indicator
+     * - Standard vibration pattern
      */
     private fun createAlertsChannel(notificationManager: NotificationManager) {
         val channel = NotificationChannel(
@@ -96,7 +117,9 @@ object NotificationChannelInitializer {
         ).apply {
             description = CHANNEL_DESC_ALERTS
             enableLights(true)
+            lightColor = COLOR_ALERT
             enableVibration(true)
+            vibrationPattern = VIBRATION_PATTERN_ALERT
         }
 
         notificationManager.createNotificationChannel(channel)
