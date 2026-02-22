@@ -17,11 +17,11 @@ CREATE TABLE users (
 
 -- 3. CONTACTS TABLE
 CREATE TABLE user_contacts (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID REFERENCES users(id) ON DELETE CASCADE,
     contact_phone_number VARCHAR(20) NOT NULL,
     display_name VARCHAR(100),
-    has_app BOOLEAN DEFAULT false
+    has_app BOOLEAN DEFAULT false,
+    PRIMARY KEY (user_id, contact_phone_number) -- No UUID needed
 );
 
 -- 4. EVENTS TABLE (The main alert table)
@@ -35,15 +35,7 @@ CREATE TABLE events (
     broadcast_type VARCHAR(20), -- 'PUBLIC' or 'PRIVATE'
     description VARCHAR(500),
     is_anonymous BOOLEAN DEFAULT false,
+    notified_at TIMESTAMP DEFAULT now(),
     created_at TIMESTAMP DEFAULT now(),
     expires_at TIMESTAMP DEFAULT (now() + interval '48 hours')
-);
-
--- 5. RECIPIENTS TABLE (Tracking who got the alert)
-CREATE TABLE event_recipients (
-    event_id UUID REFERENCES events(id) ON DELETE CASCADE,
-    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-    notified_at TIMESTAMP DEFAULT now(),
-    acknowledged_at TIMESTAMP,
-    PRIMARY KEY (event_id, user_id)
 );
