@@ -36,6 +36,10 @@ import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberTopAppBarState
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -43,7 +47,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import org.crimsoncode2026.data.Event
+import org.crimsoncode2026.data.Severity
+import org.crimsoncode2026.data.Category
 import org.crimsoncode2026.data.User
+import org.crimsoncode2026.data.BroadcastType
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -65,11 +72,15 @@ data class EventListItem(
  * - "Clear All" button to remove all events from list (local cache only)
  * - Shows event severity, category, description preview, time
  * - Separate sections for private and public events
+ * - Filter options for severity, category, and broadcast type
  *
  * @param events List of events to display with creator info for private events
  * @param onEventClick Callback when user taps an event
  * @param onClearAll Callback when user taps Clear All button
  * @param onDismiss Callback when user dismisses the list view
+ * @param selectedSeverity Selected severity filter (null = show all)
+ * @param selectedCategory Selected category filter (null = show all)
+ * @param selectedBroadcastType Selected broadcast type filter (null = show all)
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -77,13 +88,47 @@ fun EventListView(
     events: List<EventListItem>,
     onEventClick: (Event) -> Unit = {},
     onClearAll: () -> Unit = {},
-    onDismiss: () -> Unit = {}
+    onDismiss: () -> Unit = {},
+    selectedSeverity: Severity? = null,
+    selectedCategory: Category? = null,
+    selectedBroadcastType: BroadcastType? = null
 ) {
     val scrollState = rememberLazyListState()
     val topAppBarState = rememberTopAppBarState()
 
-    val privateEvents = events.filter { it.event.isPrivate }
-    val publicEvents = events.filter { it.event.isPublic }
+    // Filter events based on selected filters
+    val privateEvents = events.filter { item ->
+        item.event.isPrivate &&
+        matchesSeverity(item.event.severityEnum) &&
+        matchesCategory(item.event.categoryEnum)
+    }
+    val publicEvents = events.filter { item ->
+        item.event.isPublic &&
+        matchesSeverity(item.event.severityEnum) &&
+        matchesCategory(item.event.categoryEnum) &&
+        matchesBroadcastType(item.event.broadcastTypeEnum)
+    }
+
+    /**
+     * Check if event severity matches the selected filter
+     */
+    fun matchesSeverity(severity: Severity?): Boolean {
+        return selectedSeverity == null || severity == selectedSeverity
+    }
+
+    /**
+     * Check if event category matches the selected filter
+     */
+    fun matchesCategory(category: Category?): Boolean {
+        return selectedCategory == null || category == selectedCategory
+    }
+
+    /**
+     * Check if event broadcast type matches the selected filter
+     */
+    fun matchesBroadcastType(type: BroadcastType?): Boolean {
+        return selectedBroadcastType == null || type == selectedBroadcastType
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -93,6 +138,16 @@ fun EventListView(
                 onDismiss = onDismiss,
                 onClearAll = if (events.isNotEmpty()) onClearAll else null,
                 scrollBehavior = topAppBarState
+            )
+
+            // Filter chips row
+            FilterChipsRow(
+                selectedSeverity = selectedSeverity,
+                selectedCategory = selectedCategory,
+                selectedBroadcastType = selectedBroadcastType,
+                onSeveritySelected = { /* TODO: Update filter state */ },
+                onCategorySelected = { /* TODO: Update filter state */ },
+                onBroadcastTypeSelected = { /* TODO: Update filter state */ }
             )
 
             // Event list
@@ -441,4 +496,93 @@ private fun severityColor(severity: org.crimsoncode2026.data.Severity?): android
         org.crimsoncode2026.data.Severity.CRISIS -> androidx.compose.ui.graphics.Color(0xFFDC2626) // Red
         null -> MaterialTheme.colorScheme.outline
     }
+}
+
+/**
+ * Filter chips row
+ *
+ * Horizontal scrollable row of filter chips for severity, category, and broadcast type
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun FilterChipsRow(
+    selectedSeverity: Severity?,
+    selectedCategory: Category?,
+    selectedBroadcastType: BroadcastType?,
+    onSeveritySelected: (Severity?) -> Unit = {},
+    onCategorySelected: (Category?) -> Unit = {},
+    onBroadcastTypeSelected: (BroadcastType?) -> Unit = {}
+) {
+    Row(
+        modifier = Modifier
+            .horizontalScroll(rememberScrollState())
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        // Severity filter chip
+        SeverityFilterChip(
+            selected = selectedSeverity,
+            onSelected = onSeveritySelected
+        )
+
+        // Category filter chip
+        CategoryFilterChip(
+            selected = selectedCategory,
+            onSelected = onCategorySelected
+        )
+
+        // Broadcast type filter chip
+        BroadcastTypeFilterChip(
+            selected = selectedBroadcastType,
+            onSelected = onBroadcastTypeSelected
+        )
+    }
+}
+
+/**
+ * Severity filter chip
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SeverityFilterChip(
+    selected: Severity?,
+    onSelected: (Severity?) -> Unit = {}
+) {
+    FilterChip(
+        selected = selected != null,
+        onClick = { onSelected(if (selected == null) null else null) },
+        label = "Severity"
+    )
+}
+
+/**
+ * Category filter chip
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun CategoryFilterChip(
+    selected: Category?,
+    onSelected: (Category?) -> Unit = {}
+) {
+    FilterChip(
+        selected = selected != null,
+        onClick = { onSelected(if (selected == null) null else null) },
+        label = "Category"
+    )
+}
+
+/**
+ * Broadcast type filter chip
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun BroadcastTypeFilterChip(
+    selected: BroadcastType?,
+    onSelected: (BroadcastType?) -> Unit = {}
+) {
+    FilterChip(
+        selected = selected != null,
+        onClick = { onSelected(if (selected == null) null else null) },
+        label = "Broadcast"
+    )
 }
