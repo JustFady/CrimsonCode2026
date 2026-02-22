@@ -26,3 +26,7 @@ DATABASE_URL
 
 # Schema files (moved to backend/migrations/)
 docs/supabase_schema_download.sql
+
+# Firebase
+**/google-services.json
+**/GoogleService-Info.plist
