@@ -28,6 +28,7 @@ data class MapEvent(
 data class MainMapState(
     val userLocation: LocationData? = null,
     val mapBounds: MapBounds? = null,
+    val cameraPosition: CameraPosition? = null,
     val loadedEvents: List<MapEvent> = emptyList(),
     val selectedEvent: MapEvent? = null,
     val isLoading: Boolean = false,
@@ -174,6 +175,42 @@ class MainMapViewModel(
      */
     fun reloadPrivateEvents() {
         loadPrivateEvents()
+    }
+
+    /**
+     * Zoom map to a specific location
+     *
+     * @param latitude Target latitude
+     * @param longitude Target longitude
+     * @param zoom Optional zoom level (defaults to 14.0)
+     */
+    fun zoomToLocation(latitude: Double, longitude: Double, zoom: Double = 14.0) {
+        _state.value = _state.value.copy(
+            cameraPosition = CameraPosition(
+                latitude = latitude,
+                longitude = longitude,
+                zoom = zoom
+            )
+        )
+    }
+
+    /**
+     * Zoom map to an event location and select it
+     *
+     * @param eventId ID of the event to zoom to
+     */
+    fun zoomToEvent(eventId: String) {
+        val targetEvent = _state.value.loadedEvents.find { it.event.id == eventId }
+        if (targetEvent != null) {
+            _state.value = _state.value.copy(
+                cameraPosition = CameraPosition(
+                    latitude = targetEvent.event.latitude,
+                    longitude = targetEvent.event.longitude,
+                    zoom = 14.0
+                ),
+                selectedEvent = targetEvent
+            )
+        }
     }
 
     /**

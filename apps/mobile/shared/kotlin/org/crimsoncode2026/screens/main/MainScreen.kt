@@ -1,36 +1,45 @@
 package org.crimsoncode2026.screens.main
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Badge
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.EventNote
+import org.crimsoncode2026.location.LocationPermissionHandler
+import org.koin.compose.koinInject
 
 /**
  * Main app screen with event map, settings, FAB, and event list toggle button
  *
  * Features:
- * - Event map view (to be implemented)
+ * - Event map view using MapLibre with OpenStreetMap tiles
  * - Settings button in top app bar
  * - FAB button to launch event creation wizard
  * - Event list toggle button showing event count
  *
  * @param onNavigateToSettings Callback when user navigates to settings
  * @param onCreateEvent Callback when user taps FAB to create event
- * @param eventCount Number of events to display on list button
  * @param onShowEventList Callback when user taps event list button
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -38,9 +47,19 @@ import androidx.compose.material.icons.filled.EventNote
 fun MainScreen(
     onNavigateToSettings: () -> Unit = {},
     onCreateEvent: () -> Unit = {},
-    eventCount: Int = 0,
     onShowEventList: () -> Unit = {}
 ) {
+    val locationPermissionHandler: LocationPermissionHandler = koinInject()
+    val viewModel: MainMapViewModel = koinInject()
+    val state by viewModel.state.collectAsState()
+
+    // Request location permissions on screen load
+    LaunchedEffect(Unit) {
+        if (!locationPermissionHandler.hasLocationPermission()) {
+            locationPermissionHandler.requestLocationPermission()
+        }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -49,27 +68,27 @@ fun MainScreen(
                     Row {
                         // Event list toggle button with badge
                         Box {
-                            androidx.compose.material3.IconButton(onClick = onShowEventList) {
+                            IconButton(onClick = onShowEventList) {
                                 Icon(Icons.Default.EventNote, contentDescription = "Event List")
                             }
                             // Event count badge
-                            if (eventCount > 0) {
-                                androidx.compose.material3.Badge(
+                            if (state.loadedEvents.isNotEmpty()) {
+                                Badge(
                                     modifier = Modifier.align(Alignment.TopEnd),
                                     containerColor = MaterialTheme.colorScheme.primary
                                 ) {
                                     Text(
-                                        text = eventCount.toString(),
+                                        text = state.loadedEvents.size.toString(),
                                         style = MaterialTheme.typography.labelSmall
                                     )
                                 }
                             }
                         }
 
-                        Spacer(modifier = androidx.compose.foundation.layout.width(8.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
 
                         // Settings button
-                        androidx.compose.material3.IconButton(onClick = onNavigateToSettings) {
+                        IconButton(onClick = onNavigateToSettings) {
                             Icon(Icons.Default.Settings, contentDescription = "Settings")
                         }
                     }

@@ -43,6 +43,7 @@ import org.crimsoncode2026.domain.usecases.AppUserDetectionUseCase
 import org.crimsoncode2026.domain.usecases.ImportContactsUseCase
 import org.crimsoncode2026.screens.contacts.ContactsViewModel
 import org.crimsoncode2026.screens.eventcreation.EventCreationViewModel
+import org.crimsoncode2026.screens.main.MainMapViewModel
 import org.crimsoncode2026.screens.privateevents.PrivateEventsViewModel
 import org.crimsoncode2026.screens.settings.SettingsViewModel
 import org.crimsoncode2026.domain.usecases.FcmTokenInitializationUseCase
@@ -214,6 +215,16 @@ val eventsModule = module {
         EventCreationViewModel(
             createEventUseCase = get(),
             scope = params.get()
+        )
+    }
+
+    // Main Map ViewModel - state management for main map screen (singleton for shared state)
+    single {
+        MainMapViewModel(
+            queryPublicEventsUseCase = get(),
+            getReceivedEventsUseCase = get(),
+            locationState = get { parametersOf(CoroutineScope(SupervisorJob() + Dispatchers.Default)) },
+            scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
         )
     }
 

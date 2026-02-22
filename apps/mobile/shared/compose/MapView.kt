@@ -17,13 +17,15 @@ import maplibre.compose.rememberMapLibreStyle
  * - OpenStreetMap tiles (no API key required)
  * - Configurable camera position
  * - Map gestures enabled (zoom, pan, rotate)
+ * - Optional content slot for markers and other map overlays
  *
- * @param modifier Modifier for the map view
+ * @param modifier Modifier for map view
  * @param initialZoom Initial zoom level (default: 10.0)
  * @param initialLatitude Initial center latitude (default: 39.8283 - approximate USA center)
  * @param initialLongitude Initial center longitude (default: -98.5795 - approximate USA center)
  * @param onMapReady Callback when map is fully loaded and ready for interaction
  * @param onCameraChanged Callback when camera position changes (optional)
+ * @param content Optional composable content to display on map (e.g., markers, layers)
  */
 @Composable
 fun MapView(
@@ -32,7 +34,8 @@ fun MapView(
     initialLatitude: Double = 39.8283,
     initialLongitude: Double = -98.5795,
     onMapReady: () -> Unit = {},
-    onCameraChanged: (CameraPosition) -> Unit = {}
+    onCameraChanged: (CameraPosition) -> Unit = {},
+    content: @Composable () -> Unit = {}
 ) {
     val cameraPositionState = rememberCameraPositionState(
         initialPosition = CameraPosition(
@@ -63,15 +66,17 @@ fun MapView(
                 bearing = camera.bearing
             ))
         }
-    )
+    ) {
+        content()
+    }
 }
 
 /**
  * Map camera position data class.
  *
- * Represents the current camera state on the map.
+ * Represents current camera state on map.
  *
- * @property center Center coordinate of the map view
+ * @property center Center coordinate of map view
  * @property zoom Current zoom level
  * @property pitch Camera pitch angle in degrees (0 = top-down, 60 = max)
  * @property bearing Camera bearing/rotation angle in degrees

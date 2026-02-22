@@ -11,8 +11,10 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.navigation.NavHostController
+import androidx.navigation.navOptions
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -24,13 +26,17 @@ import org.crimsoncode2026.screens.auth.DisplayNameScreen
 import org.crimsoncode2026.screens.auth.OtpVerificationScreen
 import org.crimsoncode2026.screens.auth.PhoneEntryScreen
 import org.crimsoncode2026.screens.main.MainScreen
+import org.crimsoncode2026.screens.main.MainMapViewModel
+import org.crimsoncode2026.screens.main.MapEvent
 import org.crimsoncode2026.screens.settings.SettingsScreen
 import org.crimsoncode2026.screens.eventcreation.EventCreationWizard
 import org.crimsoncode2026.screens.publicevents.EventListView
+import org.crimsoncode2026.screens.publicevents.EventListItem
 import org.crimsoncode2026.domain.usecases.SessionInitUseCase
 import org.crimsoncode2026.domain.usecases.SessionInitResult
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
+import org.koin.compose.koinInject
 import kotlinx.serialization.Serializable
 
 // Navigation destinations
@@ -67,6 +73,9 @@ object EventListViewDestination
  */
 @Composable
 fun App() {
+    // Shared state for zoom target event ID (persisted across navigation)
+    var zoomTargetEventId by rememberSaveable { mutableStateOf<String?>(null) }
+
     MaterialTheme(
         colorScheme = if (isSystemInDarkTheme()) darkColorScheme() else lightColorScheme()
     ) {
@@ -162,6 +171,16 @@ fun App() {
 
                 // Main app screen
                 composable<MainDestination> {
+                    val viewModel: MainMapViewModel = koinInject()
+
+                    // Zoom to event when returning from event list
+                    LaunchedEffect(zoomTargetEventId) {
+                        zoomTargetEventId?.let { eventId ->
+                            viewModel.zoomToEvent(eventId)
+                            zoomTargetEventId = null // Clear after zooming
+                        }
+                    }
+
                     MainScreen(
                         onNavigateToSettings = {
                             navController.navigate(SettingsDestination)
@@ -169,7 +188,6 @@ fun App() {
                         onCreateEvent = {
                             navController.navigate(EventCreationWizardDestination)
                         },
-                        eventCount = 0, // TODO: Get from MainMapViewModel state
                         onShowEventList = {
                             navController.navigate(EventListViewDestination)
                         }
@@ -178,10 +196,27 @@ fun App() {
 
                 // Event list view
                 composable<EventListViewDestination> {
+                    val viewModel: MainMapViewModel = koinInject()
+                    val state by viewModel.state.collectAsState()
+
+                    // Convert MapEvent to EventListItem for EventListView
+                    val eventListItems = state.loadedEvents.map { mapEvent ->
+                        EventListItem(
+                            event = mapEvent.event,
+                            creator = mapEvent.creator
+                        )
+                    }
+
                     EventListView(
-                        events = emptyList(), // TODO: Get from MainMapViewModel state
-                        onEventClick = { /* TODO: Zoom map to event location */ },
-                        onClearAll = { /* TODO: Clear from MainMapViewModel */ },
+                        events = eventListItems,
+                        onEventClick = { event ->
+                            // Set zoom target and navigate back to map
+                            zoomTargetEventId = event.id
+                            navController.popBackStack()
+                        },
+                        onClearAll = {
+                            viewModel.clearAllEvents()
+                        },
                         onDismiss = {
                             navController.popBackStack()
                         }
