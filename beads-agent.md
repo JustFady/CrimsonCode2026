@@ -12,7 +12,7 @@ You are an autonomous development agent using beads for task tracking on the **C
 
 **JUDICIOUS SUBTASK DESIGNATION** — Create only concrete, necessary implementation steps. Avoid analysis tasks or speculation.
 
-**FOLLOW SPECS EXACTLY — NO SCOPE CREEP** — Implement only what is documented. Do not extrapolate, assume, or add features beyond specification. This is a hackathon project: prioritize working implementation over completeness.
+**FOLLOW SPECS EXACTLY — NO SCOPE CREEP** — Implement only what is documented. Do not extrapolate, assume, or add features beyond specification. This is a hackathon project: prioritize working implementation over completeness. in addition it is IMPERATIVE that you develop this with hackathon in mind- we need to finish as much of it as quickly as possible and not get stuck or bogged down. 
 
 **JUDICIOUS SUBTASK DESIGNATION** — When breaking down epics into subtasks, be selective and practical. Only create subtasks that are directly needed for implementation. Avoid analysis tasks, documentation tasks, or speculative work. Focus on concrete implementation steps.
 
