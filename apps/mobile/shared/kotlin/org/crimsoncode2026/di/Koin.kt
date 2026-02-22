@@ -34,6 +34,7 @@ import org.crimsoncode2026.contacts.permissions.ContactsPermissionHandler
 import org.crimsoncode2026.contacts.DeviceContactsService
 import org.crimsoncode2026.domain.usecases.AppUserDetectionUseCase
 import org.crimsoncode2026.domain.usecases.ImportContactsUseCase
+import org.crimsoncode2026.screens.contacts.ContactsViewModel
 import org.crimsoncode2026.domain.usecases.FcmTokenInitializationUseCase
 import org.crimsoncode2026.notifications.FcmTokenManager
 import org.crimsoncode2026.notifications.FcmTokenRepository
@@ -82,6 +83,17 @@ val contactsModule = module {
 
     // Import Contacts Use Case - orchestrates contact import and sync
     single { ImportContactsUseCase(get(), get(), get()) }
+
+    // Contacts ViewModel - state management for contact selection screen
+    factory { params ->
+        ContactsViewModel(
+            userContactRepository = get(),
+            importContactsUseCase = get(),
+            contactsPermissionHandler = get(),
+            userSessionManager = get(),
+            scope = params.get()
+        )
+    }
 }
 
 /**
