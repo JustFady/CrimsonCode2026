@@ -28,6 +28,7 @@ import org.crimsoncode2026.domain.usecases.UpdateLastActiveUseCase
 import org.crimsoncode2026.location.LocationRepository
 import org.crimsoncode2026.location.permissions.LocationPermissionHandler
 import org.crimsoncode2026.location.LocationState
+import org.crimsoncode2026.notifications.NotificationPermissionHandler
 import org.crimsoncode2026.location.IpGeolocationService
 import org.crimsoncode2026.storage.SecureStorage
 import org.crimsoncode2026.di.supabaseClientModule
@@ -41,6 +42,10 @@ val locationModule = module {
     single { IpGeolocationService(get()) }
     single { LocationRepository(get(PermissionsController), get()) }
     factory { params -> LocationState(get(), params.get()) }
+}
+
+val notificationsModule = module {
+    factory { params -> NotificationPermissionHandler(get(PermissionsController)) }
 }
 
 /**
@@ -108,6 +113,7 @@ fun initKoin() {
             supabaseDataModule,
             authModule,
             locationModule,
+            notificationsModule,
         )
     }
 
