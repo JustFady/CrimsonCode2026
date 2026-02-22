@@ -224,8 +224,8 @@ class MainMapViewModel(
         if (targetEvent != null) {
             _state.value = _state.value.copy(
                 cameraPosition = CameraPosition(
-                    latitude = targetEvent.event.latitude,
-                    longitude = targetEvent.event.longitude,
+                    latitude = targetEvent.event.lat,
+                    longitude = targetEvent.event.lon,
                     zoom = 14.0
                 ),
                 selectedEvent = targetEvent
