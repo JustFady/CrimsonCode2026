@@ -330,18 +330,16 @@ Users (1) ----< (N) EventRecipients ----> (N) Events
 - Single KMP library handling both Android and iOS
 - Firebase bridges FCM to APNs for iOS
 - Shared API reduces platform-specific code
-- Built-in deep linking, permissions, custom sounds
+- Built-in deep linking, permissions
 
 ### Notification Types
 
 **Crisis Alert:**
-- Sound: Custom emergency sound
 - Vibration: Aggressive pattern
 - Priority: High
 - Actions: "View on Map"
 
 **Alert (Warning):**
-- Sound: Default notification sound
 - Vibration: Standard pattern
 - Priority: Normal
 - Actions: "View on Map"
@@ -362,12 +360,10 @@ Users (1) ----< (N) EventRecipients ----> (N) Events
 
 **Emergency Alerts:**
 - Importance: High
-- Sound: Custom emergency sound
 - Bypass DND: Not guaranteed (platform-managed)
 
 **Alerts:**
 - Importance: Default
-- Sound: Default notification sound
 
 ---
 
@@ -523,7 +519,7 @@ Users (1) ----< (N) EventRecipients ----> (N) Events
 **Event Information Panel:**
 - Bottom sheet panel slides up on marker click
 - Contains: severity, category, description, location, time
-- If private: shows creator's display name from Users table
+- If private: shows creator's display name from Users table (updates if sender changes name)
 - If public: anonymous (no creator information)
 - "Clear from list" button to remove from user's event list
 
@@ -568,7 +564,7 @@ Users (1) ----< (N) EventRecipients ----> (N) Events
 
 **Stored Locally on Device:**
 - Public alert opt-out preference
-- Notification preferences (master toggle, crisis toggle, warning toggle, sounds, vibration)
+- Notification preferences (master toggle, crisis toggle, warning toggle, vibration)
 - Location accuracy mode preference
 - Biometric settings
 
@@ -582,7 +578,6 @@ Users (1) ----< (N) EventRecipients ----> (N) Events
 - Private alerts: Toggle (local)
 
 **Notification Preferences:**
-- Sound selection per severity (local)
 - Vibration toggle (local)
 
 ### Location Settings
@@ -608,6 +603,7 @@ Users (1) ----< (N) EventRecipients ----> (N) Events
 - Edit display name (stored in database)
 - Shown to contacts for private events
 - Required at registration
+- Historical events update to reflect new name when changed
 
 **Authentication:**
 - Logout button
