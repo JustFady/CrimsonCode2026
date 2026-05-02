@@ -2,6 +2,7 @@ package org.crimsoncode2026.data
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import org.crimsoncode2026.runtime.RuntimeClock
 
 /**
  * Event severity level
@@ -138,7 +139,7 @@ data class Event(
         /**
          * Creates expiresAt timestamp from createdAt
          */
-        fun calculateExpiration(createdAt: Long = System.currentTimeMillis()): Long {
+        fun calculateExpiration(createdAt: Long = RuntimeClock.nowMillis()): Long {
             return createdAt + DEFAULT_EXPIRATION_MS
         }
     }
@@ -165,7 +166,7 @@ data class Event(
      * Checks if event is expired
      */
     val isExpired: Boolean
-        get() = System.currentTimeMillis() > expiresAt
+        get() = RuntimeClock.nowMillis() > expiresAt
 
     /**
      * Checks if event is deleted

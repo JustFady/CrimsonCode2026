@@ -78,6 +78,7 @@ import org.crimsoncode2026.data.BroadcastType
 import org.crimsoncode2026.data.Event
 import org.crimsoncode2026.data.User
 import org.crimsoncode2026.runtime.DeviceLocationProvider
+import org.crimsoncode2026.runtime.RuntimeClock
 import org.crimsoncode2026.screens.publicevents.EventDetailsPanel
 import org.crimsoncode2026.screens.publicevents.EventListItem
 import org.crimsoncode2026.screens.publicevents.EventListView
@@ -637,7 +638,7 @@ private class PublicEventsApi {
             append("&broadcast_type=eq.PUBLIC")
             append("&deleted_at=is.null")
             append("&expires_at=gt.")
-            append(java.time.Instant.now().toString().encodeURLParameter())
+            append(RuntimeClock.isoNow().encodeURLParameter())
             if (bounded && bounds != null) {
                 append("&lat=gte.")
                 append(bounds.south.toString().encodeURLParameter())
@@ -691,7 +692,7 @@ private class CreateEventApi {
             deviceId = deviceId
         )
 
-        val now = System.currentTimeMillis()
+        val now = RuntimeClock.nowMillis()
         val expires = now + 48L * 60 * 60 * 1000
         val payload = CreateEventRequest(
             creatorId = creatorId,
@@ -702,7 +703,7 @@ private class CreateEventApi {
             broadcastType = broadcastType,
             description = description,
             isAnonymous = isAnonymous,
-            expiresAt = java.time.Instant.ofEpochMilli(expires).toString()
+            expiresAt = RuntimeClock.isoFromMillis(expires)
         )
 
         val response = client.post(supabaseUrl.trimEnd('/') + "/rest/v1/events?select=*") {
@@ -827,7 +828,7 @@ private data class SupabaseEventRow(
         val lo = lon ?: return null
         val bt = broadcastType ?: return null
         val desc = description ?: return null
-        val created = parseTimestampToMillis(createdAt) ?: System.currentTimeMillis()
+        val created = parseTimestampToMillis(createdAt) ?: RuntimeClock.nowMillis()
         val expires = parseTimestampToMillis(expiresAt) ?: (created + 48 * 60 * 60 * 1000L)
         return Event(
             id = id,
@@ -849,7 +850,7 @@ private data class SupabaseEventRow(
 private fun parseTimestampToMillis(value: String?): Long? {
     if (value.isNullOrBlank()) return null
     val normalized = value.trim().replace(" ", "T").let { if (it.endsWith("Z")) it else "${it}Z" }
-    return runCatching { java.time.Instant.parse(normalized).toEpochMilli() }.getOrNull()
+    return RuntimeClock.parseIsoMillis(normalized)
 }
 
 @Serializable
@@ -873,7 +874,7 @@ private fun extractSupabaseError(body: String): String {
 }
 
 private fun sampleEvents(): List<EventListItem> {
-    val now = System.currentTimeMillis()
+    val now = RuntimeClock.nowMillis()
     val creator = User(
         id = "user-1",
         phoneNumber = "+15099905058",
@@ -918,7 +919,17 @@ private fun sampleEvents(): List<EventListItem> {
     )
 }
 
-private fun Double.formatCoord(): String = String.format(java.util.Locale.US, "%.5f", this)
-private fun Double.formatZoom(): String = String.format(java.util.Locale.US, "%.1f", this)
+private fun Double.formatCoord(): String = formatFixed(5)
+private fun Double.formatZoom(): String = formatFixed(1)
 private fun Double.quantizeQueryCoord(): Double = kotlin.math.round(this * 200.0) / 200.0 // ~0.005 deg
 private fun Double.quantizeQueryZoom(): Double = kotlin.math.round(this * 4.0) / 4.0 // 0.25 zoom steps
+
+private fun Double.formatFixed(decimals: Int): String {
+    val factor = (1..decimals).fold(1L) { acc, _ -> acc * 10L }
+    val scaled = kotlin.math.round(this * factor).toLong()
+    val sign = if (scaled < 0) "-" else ""
+    val absScaled = kotlin.math.abs(scaled)
+    val whole = absScaled / factor
+    val fraction = (absScaled % factor).toString().padStart(decimals, '0')
+    return "$sign$whole.$fraction"
+}

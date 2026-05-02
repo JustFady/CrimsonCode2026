@@ -16,6 +16,7 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import org.crimsoncode2026.runtime.RuntimeDeviceId
+import org.crimsoncode2026.runtime.RuntimeClock
 import org.crimsoncode2026.runtime.RuntimeSecrets
 import org.crimsoncode2026.screens.main.MainScreen
 import androidx.compose.foundation.background
@@ -241,7 +242,7 @@ fun App() {
                             diagnosticsMessage = "Contact already exists. Selected ${existing.displayName}."
                             return@ContactSelectionShell
                         }
-                        val id = "c-${contacts.size + 1}-${System.currentTimeMillis()}"
+                        val id = "c-${contacts.size + 1}-${RuntimeClock.nowMillis()}"
                         contacts.add(
                             0,
                             ShellContact(

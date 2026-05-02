@@ -2,6 +2,7 @@ package org.crimsoncode2026.data
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import org.crimsoncode2026.runtime.RuntimeClock
 
 /**
  * Platform type for the device
@@ -81,7 +82,7 @@ data class User(
     fun withDisplayName(newDisplayName: String): User {
         return copy(
             displayName = newDisplayName,
-            updatedAt = System.currentTimeMillis()
+            updatedAt = RuntimeClock.nowMillis()
         )
     }
 
@@ -91,7 +92,7 @@ data class User(
     fun withFcmToken(newFcmToken: String): User {
         return copy(
             fcmToken = newFcmToken,
-            updatedAt = System.currentTimeMillis()
+            updatedAt = RuntimeClock.nowMillis()
         )
     }
 
@@ -100,8 +101,8 @@ data class User(
      */
     fun withLastActive(): User {
         return copy(
-            lastActiveAt = System.currentTimeMillis(),
-            updatedAt = System.currentTimeMillis()
+            lastActiveAt = RuntimeClock.nowMillis(),
+            updatedAt = RuntimeClock.nowMillis()
         )
     }
 }

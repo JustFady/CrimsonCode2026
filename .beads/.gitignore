@@ -1,5 +1,6 @@
 # Dolt database (managed by Dolt, not git)
 dolt/
+embeddeddolt/
 dolt-access.lock
 
 # Runtime files
@@ -20,6 +21,8 @@ redirect
 .jsonl.lock
 sync_base.jsonl
 export-state/
+export-state.json
+backup/
 
 # Legacy files (from pre-Dolt versions)
 *.db

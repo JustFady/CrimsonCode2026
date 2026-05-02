@@ -34,9 +34,7 @@ import org.crimsoncode2026.data.Category
 import org.crimsoncode2026.data.Event
 import org.crimsoncode2026.data.Severity
 import org.crimsoncode2026.data.User
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
+import org.crimsoncode2026.runtime.RuntimeClock
 
 @Composable
 fun EventDetailsPanel(
@@ -178,8 +176,12 @@ private fun categoryColor(category: Category?): Color = when (category) {
 }
 
 private fun formatEventTimestamp(timestamp: Long): String {
-    val formatter = SimpleDateFormat("MMM d, yyyy h:mm a", Locale.getDefault())
-    return formatter.format(Date(timestamp))
+    return RuntimeClock.formatDateTime(timestamp)
 }
 
-private fun Double.formatCoord(): String = String.format(Locale.US, "%.5f", this)
+private fun Double.formatCoord(): String {
+    val scaled = kotlin.math.round(this * 100_000.0).toLong()
+    val sign = if (scaled < 0) "-" else ""
+    val absScaled = kotlin.math.abs(scaled)
+    return "$sign${absScaled / 100_000}.${(absScaled % 100_000).toString().padStart(5, '0')}"
+}

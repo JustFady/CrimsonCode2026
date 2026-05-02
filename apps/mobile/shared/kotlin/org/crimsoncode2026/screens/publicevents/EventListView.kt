@@ -17,8 +17,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.List
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -45,9 +45,7 @@ import org.crimsoncode2026.data.Category
 import org.crimsoncode2026.data.Event
 import org.crimsoncode2026.data.Severity
 import org.crimsoncode2026.data.User
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
+import org.crimsoncode2026.runtime.RuntimeClock
 
 data class EventListItem(
     val event: Event,
@@ -99,7 +97,7 @@ fun EventListView(
         if (filtered.isEmpty()) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(Icons.Default.List, contentDescription = null, tint = MaterialTheme.colorScheme.outline, modifier = Modifier.size(48.dp))
+                    Icon(Icons.AutoMirrored.Filled.List, contentDescription = null, tint = MaterialTheme.colorScheme.outline, modifier = Modifier.size(48.dp))
                     Spacer(Modifier.height(10.dp))
                     Text(if (events.isEmpty()) "No events yet" else "No matching events", style = MaterialTheme.typography.titleMedium)
                     Text(
@@ -215,11 +213,11 @@ private fun EventRow(item: EventListItem, onClick: () -> Unit) {
 }
 
 private fun formatRelativeTime(timestamp: Long): String {
-    val diffMinutes = (System.currentTimeMillis() - timestamp) / 60000L
+    val diffMinutes = (RuntimeClock.nowMillis() - timestamp) / 60000L
     return when {
         diffMinutes < 1 -> "Just now"
         diffMinutes < 60 -> "${diffMinutes}m ago"
         diffMinutes < 24 * 60 -> "${diffMinutes / 60}h ago"
-        else -> SimpleDateFormat("MMM d, h:mm a", Locale.getDefault()).format(Date(timestamp))
+        else -> RuntimeClock.formatShortDateTime(timestamp)
     }
 }
